@@ -1,0 +1,4 @@
+# Ignore extracted data files
+/data/*.txt
+/data/*.xml
+/data/*.tar
