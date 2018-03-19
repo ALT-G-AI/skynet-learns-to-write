@@ -1,30 +1,38 @@
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.pipeline import Pipeline
 
-def clean_word(w):
-    return ''.join([ c.lower() for c in w if c.isalpha() ])
+# if you just want to call a function which returns processed data then use get_data
+# if you want a nice sklearn interface then use DataPipeline
 
-class Data(object):
-    # sentence_length=50 is big enough for the vast majority of the data
-    def __init__(self, processed_file = 'data_module/a.txt', sentence_length=50):
-        data = list()
-        with open(processed_file, 'r', encoding='utf8') as inf:
-            # clean up all of the words - removing nonalphabetic characters
-            for line in inf:
-                clean_line = [clean_word(w) for w in line.split(' ')]
-                clean_line.append('.') # give every sentence a termination symbol
-
-                # sentences need to have a fixed length for most of sklearn's stuff
-                if len(clean_line) > sentence_length:
-                    continue
-                elif len(clean_line) < sentence_length:
-                    clean_line.extend('\0'*(sentence_length - len(clean_line)))
-
-                assert len(clean_line) == sentence_length
-                data.append(clean_line)
-
-        # make dictionary of unique words, each with a number to represent them
+# numbers all words. Don't use this - it is just a prelimery so we can use OneHotEncoder
+class WordNumberer(BaseEstimator, TransformerMixin):
+    def __init__(self, sentence_length=50):
+        self.sentence_length = sentence_length
         self.words = {'\0': 0}
-        index = 1
+
+    def clean_word(self, w):
+        return ''.join([ c.lower() for c in w if c.isalpha() ])
+
+    def clean_data(self, d):
+        data = list()
+        for line in d:
+            clean_line = [self.clean_word(w) for w in line.split(' ')]
+            clean_line.append('.') # give every sentence a termination symbol
+
+            # sentences need to have a fixed length for most of sklearn's stuff
+            if len(clean_line) > self.sentence_length:
+                continue
+            elif len(clean_line) < self.sentence_length:
+                clean_line.extend('\0'*(self.sentence_length - len(clean_line)))
+
+            data.append(clean_line)
+
+        return data
+
+    def _fit(self, data):
+        # make dictionary of unique words, each with a number to represent them
+        index = 1 # 0 is always the line ending character
         for line in data:
             for word in line:
                 if (word in self.words):
@@ -33,16 +41,60 @@ class Data(object):
                     self.words[word] = index
                     index += 1
 
+
+    def fit(self, X, y=None):
+        data = self.clean_data(X)
+        self._fit(data)
+
+    def _transform(self, data):
         # replace with numbers
         proc_data = list()
         for line in data:
             proc_data.append([self.words[w] for w in line])
 
-        # one hot encoding
+        return proc_data
+        
+    def transform(self, X):
+        data = self.clean_data(X)
+        return self._transform(data)
+
+    def fit_transform(self, X, y=None):
+        data = self.clean_data(X)
+        self._fit(data)
+        return self._transform(data)
+        
+
+# pipeline from WordNumberer through OneHotEncoder. 
+class DataPipeline(BaseEstimator, TransformerMixin):
+    def __init__(self, sentence_length=50):
+        # numberer
+        self.numberer = WordNumberer(sentence_length)
+
+        # one hot encoder
         self.enc = OneHotEncoder(dtype=int)
-        self.all_data = self.enc.fit_transform(proc_data)
 
+        # pipeline
+        self.pipeline = Pipeline(steps=[
+            ("word numberer", self.numberer),
+            ("one-hot-encoding", self.enc),
+            ])
 
+    def fit(self, X, y=None):
+        self.pipeline.fit(X, y)
+
+    def transform(self, X, y=None):
+        self.pipeline.transform(X, y)
+
+    def fit_transform(self, X, y=None):
+        return self.pipeline.fit_transform(X, y)
+
+# This is probably what you want
+def get_data(file='data_module/a.txt'):
+    pipe = DataPipeline()
+    with open(file, 'r', encoding='utf8') as inf:
+        return pipe.fit_transform(inf.readlines())
+        
+# example
 if __name__ == '__main__':
-    d = Data()
-    print(d.all_data[0])
+    sparse = get_data()
+    print(sparse[0])
