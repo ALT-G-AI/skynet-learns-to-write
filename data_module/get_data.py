@@ -16,15 +16,19 @@ if you want a nice sklearn interface then use DataPipeline
 # it is just a prelimery so we can use OneHotEncoder
 
 class WordNumberer(BaseEstimator, TransformerMixin):
+
     def __init__(self, sentence_length=50):
         self.sentence_length = sentence_length
         self.words = {'\0': 0}
+
+    def clean_word(self, word):
+        return ''.join([c for c in word if c.isalpha()])
 
     def reform_sentence(self, sen):
         """
         Reform a sentence string into a padded, terminated list of words
         """
-        reformed_sen = sen.lower().split(' ')
+        reformed_sen = [self.clean_word(w) for w in sen.lower().split(' ')]
         reformed_sen.append('.')
         if len(reformed_sen) > self.sentence_length:
                 return None
@@ -76,6 +80,7 @@ class WordNumberer(BaseEstimator, TransformerMixin):
 
 # pipeline from WordNumberer through OneHotEncoder.
 class DataPipeline(BaseEstimator, TransformerMixin):
+
     def __init__(self, sentence_length=50):
         # numberer
         self.numberer = WordNumberer(sentence_length)
@@ -130,4 +135,4 @@ def get_data(file='a.txt'):
 if __name__ == '__main__':
     (train, test, crossval) = get_data()
     for d in (train, test, crossval):
-        print("shape = %s" % (d.shape,))
+        print("shape = {}".format(d.shape))
