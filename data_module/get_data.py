@@ -1,25 +1,23 @@
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import LabelBinarizer
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
+import numpy as np
+
+import cProfile
 
 """
-if you just want to call a function which
-returns processed data then use get_data
+if you just want to call a function which returns processed data then use get_data
+this returns (train, test, crossval, onehot_object)
 
-       this returns (train, test, crossval)
-if you want a nice sklearn interface then use DataPipeline
+if you want a nice sklearn interface then use OneHot but it takes hours
 """
 
 
-# numbers all words. Don't use this -
-# it is just a prelimery so we can use OneHotEncoder
-
-class WordNumberer(BaseEstimator, TransformerMixin):
+class OneHot(BaseEstimator, TransformerMixin):
 
     def __init__(self, sentence_length=50):
         self.sentence_length = sentence_length
-        self.words = {'\0': 0}
+        self.enc = LabelBinarizer(sparse_output=True)
 
     def clean_word(self, word):
         return ''.join([c for c in word if c.isalpha()])
@@ -31,84 +29,60 @@ class WordNumberer(BaseEstimator, TransformerMixin):
         reformed_sen = [self.clean_word(w) for w in sen.lower().split(' ')]
         reformed_sen.append('.')
         if len(reformed_sen) > self.sentence_length:
-                return None
+            return None
         elif len(reformed_sen) < self.sentence_length:
-                reformed_sen.extend(
-                    '\0' *
-                    (self.sentence_length - len(reformed_sen)))
+            reformed_sen.extend(
+                '\0' *
+                (self.sentence_length - len(reformed_sen)))
         return reformed_sen
 
-    def clean_data(self, d):
-        """
-        Reforms list of sentence strings into padded, terminated lists of words
-        """
-        return [self.reform_sentence(s) for s in d
-                if self.reform_sentence(s) is not None]
-
-    def _fit(self, data):
-        # make dictionary of unique words, each with a number to represent them
-
-        word_set = {w for line in data for w in line if w is not '\0'}
-
-        self.words = {v: k for k, v in enumerate(word_set, 1)}
-        self.words['\0'] = 0
-
-        print("len(words) = %i" % len(self.words))
-
     def fit(self, X, y=None):
-        data = self.clean_data(X)
-        self._fit(data)
-
-    def _transform(self, data):
-        # replace with numbers
-        proc_data = list()
-        for line in data:
-            proc_data.append([self.words[w] for w in line])
-
-        return proc_data
-
-    def transform(self, X):
-        data = self.clean_data(X)
-        return self._transform(data)
-
-    def fit_transform(self, X, y=None):
-        data = self.clean_data(X)
-        print("len(data) = %i" % len(data))
-        self._fit(data)
-        return self._transform(data)
-
-
-# pipeline from WordNumberer through OneHotEncoder.
-class DataPipeline(BaseEstimator, TransformerMixin):
-
-    def __init__(self, sentence_length=50):
-        # numberer
-        self.numberer = WordNumberer(sentence_length)
-
-        # one hot encoder
-        self.enc = OneHotEncoder(dtype=int)
-
-        # pipeline
-        self.pipeline = Pipeline(steps=[
-            ("word numberer", self.numberer),
-            ("one-hot-encoding", self.enc),
-        ])
-
-    def fit(self, X, y=None):
-        self.pipeline.fit(X, y)
+        # putting flat through a set so that the words are unique
+        flat = set()
+        for line in X:
+            reformed = self.reform_sentence(line)
+            if reformed is not None:
+                for word in reformed:
+                    flat.add(word)
+        self.enc.fit(list(flat))
 
     def transform(self, X, y=None):
-        self.pipeline.transform(X, y)
+        out = list()
+        for line in X:
+            reformed = self.reform_sentence(line)
+            if reformed is not None:
+                # all the cpu time is spent in enc.transform
+                out.append(self.enc.transform(reformed))
+        return out
 
     def fit_transform(self, X, y=None):
-        return self.pipeline.fit_transform(X, y)
+        self.fit(X)
+        return self.transform(X)
+
+    def inverse_transform(self, X):
+        out = list()
+        for line in X:
+            out.append(
+                [word for word in self.enc.inverse_transform(line) if word != ''])
+        return out
 
 
-# This is probably what you want. Returns (train, test, crossval)
-def get_data(file='a.txt'):
-    pipe = DataPipeline()
-    with open(file, 'r', encoding='utf8') as inf:
-        all_data = pipe.fit_transform(inf.readlines())
+def get_data(num_lines=None, infile='a.txt', outfile='one_hot_encoded.npy'):
+    """
+    num_lines only applies if generating a new outfile
+    """
+    try:
+        # load previously encoded data
+        (all_data, onehot) = np.load(outfile)
+    except IOError:
+        # encode the data ourselves
+        onehot = OneHot()
+        with open(infile, 'r', encoding='utf8') as inf:
+            in_data = inf.readlines()[:num_lines]
+
+        all_data = onehot.fit_transform(in_data)
+        # save for later
+        np.save(outfile, (all_data, onehot))
 
     # split into train/test/crossval
     crosval_prop = 0.2
@@ -128,11 +102,18 @@ def get_data(file='a.txt'):
         test_size=(crosval_prop / intermediate_prop),
         random_state=random_state)
 
-    return (X_train, X_test, X_crossval)
+    return (X_train, X_test, X_crossval, onehot)
 
 
-# example
+def main():
+    num_sentences = None
+
+    (train, test, crossval, onehot) = get_data(num_lines=num_sentences)
+
+    inverse = onehot.inverse_transform(train)
+
+    print(inverse)
+
 if __name__ == '__main__':
-    (train, test, crossval) = get_data()
-    for d in (train, test, crossval):
-        print("shape = {}".format(d.shape))
+    # cProfile.run('main()')
+    main()
