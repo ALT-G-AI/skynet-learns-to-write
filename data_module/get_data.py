@@ -2,7 +2,7 @@ from sklearn.preprocessing import LabelBinarizer
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.model_selection import train_test_split
 import numpy as np
-
+import gzip
 import cProfile
 
 """
@@ -67,14 +67,16 @@ class OneHot(BaseEstimator, TransformerMixin):
         return out
 
 
-def get_data(num_lines=None, infile='a.txt', outfile='one_hot_encoded.npy'):
+def get_data(num_lines=None, infile='a.txt', outfile='one_hot_encoded.npy.gz'):
     """
     num_lines only applies if generating a new outfile
     """
     try:
         # load previously encoded data
-        (all_data, onehot) = np.load(outfile)
+        with gzip.open(outfile, 'rb') as gzipf:
+            (all_data, onehot) = np.load(gzipf)
     except IOError:
+        print('Generating {}'.format(outfile))
         # encode the data ourselves
         onehot = OneHot()
         with open(infile, 'r', encoding='utf8') as inf:
@@ -82,7 +84,8 @@ def get_data(num_lines=None, infile='a.txt', outfile='one_hot_encoded.npy'):
 
         all_data = onehot.fit_transform(in_data)
         # save for later
-        np.save(outfile, (all_data, onehot))
+        with gzip.open(outfile, 'wb') as gzipf:
+            np.save(gzipf, (all_data, onehot))
 
     # split into train/test/crossval
     crosval_prop = 0.2
