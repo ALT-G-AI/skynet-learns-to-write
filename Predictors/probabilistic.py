@@ -21,8 +21,7 @@ class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
 
         for s, l in zip(sentences, labels):
             # Strip punctuation
-            s = ''.join([c for c in s if c not in punctuation]).lower()
-            words = s.split(' ')
+            words = self.sen2words(s)
             for w in words:
                 self.counterTable[l][w] += 1
 
@@ -30,3 +29,43 @@ class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
             ctr = self.counterTable[l]
             tw = sum(ctr.values())
             self.logTable[l] = {k: log(v / tw) for k, v in ctr.items()}
+
+        self.trained_ = True
+
+    @staticmethod
+    def sen2words(s):
+        s = ''.join([c for c in s if c not in punctuation]).lower()
+        return s.split(' ')
+
+    def score_(self, w, l):
+        if self.hit_(w, l):
+            return self.logTable[l][w]
+        else:
+            return 0
+
+    def hit_(self, w, l):
+        return (w in self.logTable[l])
+
+    def predict(self, X):
+        try:
+            getattr(self, 'trained_')
+        except AttributeError:
+            raise RuntimeError('You must train the classifier before using it')
+
+        words = self.sen2words(X)
+        scores = [
+            sum([self.score_(w, l) for w in words])
+            for l in self.logTable.keys()]
+        hits = [
+            sum([self.hit_(w, l) for w in words])
+            for l in self.logTable.keys()]
+
+        print(scores, hits)
+
+        maxhits = max(hits)
+
+        merged = zip(scores, hits, self.logTable.keys())
+
+        maxes = [(s, l) for s, h, l in merged if h is maxhits]
+
+        return max(maxes, key=lambda x: x[0])[1]
