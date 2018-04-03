@@ -31,7 +31,7 @@ class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
         self.trained_ = True
 
     @staticmethod
-    def sen2words(s):
+    def sen2words_(s):
         s = ''.join([c for c in s if c not in punctuation]).lower()
         return s.split(' ')
 
@@ -50,10 +50,10 @@ class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
         except AttributeError:
             raise RuntimeError('You must train the classifier before using it')
 
-        return [self.predict_sen(s) for s in X]
+        return [self.predict_sen_(s) for s in X]
 
-    def predict_sen(self, s):
-        words = self.sen2words(s)
+    def predict_sen_(self, s):
+        words = self.sen2words_(s)
         scores = [
             sum([self.score_(w, l) for w in words])
             for l in self.logTable.keys()]
