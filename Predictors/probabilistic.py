@@ -1,8 +1,6 @@
 from collections import Counter
 from string import punctuation
 from numpy import log
-from data.import_data import import_data
-from sklearn.model_selection import cross_val_score
 from sklearn.base import BaseEstimator, ClassifierMixin
 
 
@@ -52,7 +50,10 @@ class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
         except AttributeError:
             raise RuntimeError('You must train the classifier before using it')
 
-        words = self.sen2words(X)
+        return [self.predict_sen(s) for s in X]
+
+    def predict_sen(self, s):
+        words = self.sen2words(s)
         scores = [
             sum([self.score_(w, l) for w in words])
             for l in self.logTable.keys()]
@@ -60,12 +61,9 @@ class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
             sum([self.hit_(w, l) for w in words])
             for l in self.logTable.keys()]
 
-        print(scores, hits)
-
         maxhits = max(hits)
 
         merged = zip(scores, hits, self.logTable.keys())
 
         maxes = [(s, l) for s, h, l in merged if h is maxhits]
-
         return max(maxes, key=lambda x: x[0])[1]
