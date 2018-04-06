@@ -19,7 +19,7 @@ class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
 
         for s, l in zip(sentences, labels):
             # Strip punctuation
-            words = self.sen2words(s)
+            words = self.sen2words_(s)
             for w in words:
                 self.counterTable[l][w] += 1
 
