@@ -10,12 +10,12 @@ class windowedGClassifier(BaseEstimator, ClassifierMixin):
 
     def __init__(
         self,
-        encoder=None,
+        encoder_size=100,
         window=5,
         DNNlayers=[100, 80]
     ):
 
-        self.encoder = encoder
+        self.encoder_size = encoder_size
         self.window = window
         self.DNNlayers = DNNlayers
 
@@ -49,21 +49,17 @@ class windowedGClassifier(BaseEstimator, ClassifierMixin):
 
         print("Training word encoding")
 
-        def_enc_size = 100
-
-        if self.encoder is None:
-            self.encoder = Word2Vec([
-                self.tokenize_(s)
-                for s in sentences],
-                size=def_enc_size,
-                window=self.window,
-                min_count=0,
-                workers=4)
-            self.encoder.size = def_enc_size
+        self.encoder = Word2Vec([
+            self.tokenize_(s)
+            for s in sentences],
+            size=self.encoder_size,
+            window=self.window,
+            min_count=0,
+            workers=4)
 
         print("Training DNN")
 
-        enc_size = self.encoder.size
+        enc_size = self.encoder_size
 
         fc = tf.feature_column.numeric_column(
             'windows',
