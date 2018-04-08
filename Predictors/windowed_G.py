@@ -1,8 +1,10 @@
 from nltk.tokenize import word_tokenize
 from gensim.models import Word2Vec
 from sklearn.base import BaseEstimator, ClassifierMixin
+
+from Predictors.windowed_data import windowed_data
+
 import tensorflow as tf
-import numpy as np
 import logging
 
 
@@ -12,38 +14,40 @@ class windowedGClassifier(BaseEstimator, ClassifierMixin):
         self,
         encoder_size=100,
         window=5,
-        DNNlayers=[100, 80]
+        DNNlayers=[100, 80],
+        batch_n=10000
     ):
 
         self.encoder_size = encoder_size
         self.window = window
         self.DNNlayers = DNNlayers
+        self.batch_n = batch_n
 
     @staticmethod
     def tokenize_(sen):
         return word_tokenize(sen.lower())
 
-    def windowed_inp_data_(self, sentences, labels, wlen):
-        data = {'windows': []}
-        outlabels = []
-        for s, l in zip(sentences, labels):
-            tokens = self.tokenize_(s)
-            encs = [self.encoder[t] for t in tokens]
+    # def windowed_inp_data_(self, sentences, labels, wlen):
+    #     data = {'windows': []}
+    #     outlabels = []
+    #     for s, l in zip(sentences, labels):
+    #         tokens = self.tokenize_(s)
+    #         encs = [self.encoder[t] for t in tokens]
 
-            for i in range(len(encs) + 1 - wlen):
-                data['windows'].append(encs[i:i + wlen])
-                outlabels.append(l)
+    #         for i in range(len(encs) + 1 - wlen):
+    #             data['windows'].append(encs[i:i + wlen])
+    #             outlabels.append(l)
 
-        data['windows'] = np.array(data['windows'])
+    #     data['windows'] = np.array(data['windows'])
 
-        authors = set(outlabels)
-        key = {k: v for k, v in zip(authors, range(len(authors)))}
+    #     authors = set(outlabels)
+    #     key = {k: v for k, v in zip(authors, range(len(authors)))}
 
-        trans = [key[l] for l in outlabels]
+    #     trans = [key[l] for l in outlabels]
 
-        print('Author to label encoding is:', key)
+    #     print('Author to label encoding is:', key)
 
-        return data, trans
+    #     return data, trans
 
     def fit(self, sentences, labels):
 
@@ -65,16 +69,20 @@ class windowedGClassifier(BaseEstimator, ClassifierMixin):
             'windows',
             shape=[self.window, enc_size])
 
-        def input_fn():
-            return self.windowed_inp_data_(sentences, labels, self.window)
+        data_in = windowed_data(
+            sentences,
+            labels,
+            self.window,
+            self.batch_n,
+            self.encoder)
 
         dnn_clf = tf.estimator.DNNClassifier(
             hidden_units=self.DNNlayers,
             n_classes=3,
             feature_columns=[fc])
 
-        logging.getLogger().setLevel(logging.INFO)
-        dnn_clf.train(input_fn)
+        #logging.getLogger().setLevel(logging.INFO)
+        dnn_clf.train(data_in)
 
         def encoded_data():
             for s in sentences:
