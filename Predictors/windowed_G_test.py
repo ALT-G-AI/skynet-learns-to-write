@@ -12,6 +12,8 @@ def tokenize(sen):
 ext_encoded = ""
 ext_authors = ""
 
+batch_n = 3
+
 if __name__ == '__main__':
     tr, te = import_data()
 
@@ -49,8 +51,9 @@ if __name__ == '__main__':
 
     #print(encoded[0])
 
-    dataset = tf.data.Dataset.from_tensor_slices((ext_encoded, ext_authors))
-    iterator = dataset.make_one_shot_iterator()
+    dataset_full = tf.data.Dataset.from_tensor_slices((ext_encoded, ext_authors))
+    dataset_batched = dataset_full.batch(batch_n)
+    iterator = dataset_batched.make_one_shot_iterator()
     el = iterator.get_next()
 
     with tf.Session() as sess:
