@@ -12,12 +12,14 @@ class windowedGClassifier(BaseEstimator, ClassifierMixin):
         self,
         encoder_size=100,
         window=5,
-        DNNlayers=[100, 80]
+        DNNlayers=[100, 80],
+        batch_size=10,
     ):
 
         self.encoder_size = encoder_size
         self.window = window
         self.DNNlayers = DNNlayers
+        self.batch_size = batch_size
 
     @staticmethod
     def tokenize_(sen):
@@ -37,13 +39,16 @@ class windowedGClassifier(BaseEstimator, ClassifierMixin):
         data['windows'] = np.array(data['windows'])
 
         authors = set(outlabels)
+        assert(len(authors) == 3)
         key = {k: v for k, v in zip(authors, range(len(authors)))}
 
         trans = [key[l] for l in outlabels]
 
-        print('Author to label encoding is:', key)
+        dataset = tf.data.Dataset.from_tensor_slices((data, trans))
 
-        return data, trans
+        # recommended in the tensorflow docs - why?
+        # return dataset.shuffle(1000).repeat().batch(self.batch_size)
+        return dataset.batch(self.batch_size)
 
     def fit(self, sentences, labels):
 
