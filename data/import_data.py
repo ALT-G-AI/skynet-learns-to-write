@@ -55,4 +55,4 @@ def create_batched_ds(encoder, window, sens, labs):
     dataset_full = tf.data.Dataset.from_tensor_slices(
         ({'windows': ext_encoded}, ext_authors))
 
-    return dataset_full
+    return dataset_full, author_key

@@ -53,6 +53,9 @@ class windowedGClassifier(BaseEstimator, ClassifierMixin):
                 self.window,
                 sentences,
                 labels)
+
+            self.author_key = ds[1]
+            ds = ds[0]
             return ds.shuffle(1000).repeat().batch(self.batch_n)
 
         # logging.getLogger().setLevel(logging.INFO)
