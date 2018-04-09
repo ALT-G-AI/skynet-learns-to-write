@@ -41,9 +41,9 @@ class windowedForestClassifier(BaseEstimator, ClassifierMixin):
         data = np.reshape(data, (data.shape[0], data.shape[1] * data.shape[2]))
 
         authors = set(outlabels)
-        key = {k: v for k, v in zip(authors, range(len(authors)))}
+        self.key = {k: v for k, v in zip(authors, range(len(authors)))}
 
-        trans = [key[l] for l in outlabels]
+        trans = [self.key[l] for l in outlabels]
 
         return data, trans
 
@@ -76,10 +76,13 @@ class windowedForestClassifier(BaseEstimator, ClassifierMixin):
         tokens = self.tokenize_(X)
         encs = [self.encoder[t] for t in tokens]
         data = []
-        for i in range(len(encs) + 1 - wlen):
-            data.append(encs[i:i + wlen])
+        for i in range(len(encs) + 1 - self.window):
+            data.append(encs[i:i + self.window])
 
         data = np.array(data)
         data = np.reshape(data, (data.shape[0], data.shape[1] * data.shape[2]))
 
-        return self.forest_clf.predict(data)
+        reverse_key = {k: v for k, v in zip(
+            self.key.values(), self.key.keys())}
+
+        return [reverse_key[c] for c in self.forest_clf.predict(data)]
