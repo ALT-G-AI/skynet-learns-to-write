@@ -1,6 +1,8 @@
 from gensim.models import Word2Vec
 from sklearn.base import BaseEstimator, ClassifierMixin
-from data.import_data import create_batched_ds, tokenize
+from data.import_data import create_batched_ds
+from Processing.processing import merge_uncommon_words
+from Predictors.windowed_data import windowed_data
 
 import tensorflow as tf
 
@@ -13,7 +15,8 @@ class windowedGClassifier(BaseEstimator, ClassifierMixin):
         window=5,
         DNNlayers=[100, 80],
         batch_n=1000,
-        training_steps=100000
+        training_steps=100000,
+        min_word_thresh=3
     ):
 
         self.encoder_size = encoder_size
@@ -21,14 +24,16 @@ class windowedGClassifier(BaseEstimator, ClassifierMixin):
         self.DNNlayers = DNNlayers
         self.batch_n = batch_n
         self.training_steps = training_steps
+        self.min_word_thresh = min_word_thresh
 
     def fit(self, sentences, labels):
 
         print("Training word encoding")
 
-        self.encoder = Word2Vec([
-            tokenize(s)
-            for s in sentences],
+        sentences = merge_uncommon_words(sentences, self.min_word_thresh)
+
+        self.encoder = Word2Vec(
+            sentences,
             size=self.encoder_size,
             window=self.window,
             min_count=0,
@@ -45,21 +50,30 @@ class windowedGClassifier(BaseEstimator, ClassifierMixin):
         dnn_clf = tf.estimator.DNNClassifier(
             hidden_units=self.DNNlayers,
             n_classes=3,
-            feature_columns=[fc])
+            feature_columns=[fc],
+            config=tf.estimator.RunConfig().replace(
+                save_summary_steps=self.training_steps))
 
-        def input_fn():
-            ds = create_batched_ds(
-                self.encoder,
-                self.window,
-                sentences,
-                labels)
+        input_fn = windowed_data(
+            sentences,
+            labels,
+            self.window,
+            self.batch_n,
+            self.encoder)
 
-            self.author_key = ds[1]
-            ds = ds[0]
-            return ds.shuffle(1000).repeat().batch(self.batch_n)
+        batch_count = 1
 
-        # logging.getLogger().setLevel(logging.INFO)
-        dnn_clf.train(input_fn, steps=self.training_steps)
+        while True:
+            try:
+                print("Running batch", batch_count)
+                dnn_clf.train(
+                    input_fn,
+                    steps=self.training_steps)
+
+                batch_count += 1
+            except StopIteration:
+                print("Finished Learning")
+                break
 
     def predict(self, X):
         pass

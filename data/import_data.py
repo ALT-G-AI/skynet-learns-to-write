@@ -1,9 +1,9 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import numpy as np
-from nltk.tokenize import word_tokenize
 import tensorflow as tf
 from gensim.models.word2vec import Word2Vec
+from Processing.processing import tokenize
 
 TRAINING_PATH = './data/train.csv'
 
@@ -18,10 +18,6 @@ def import_data(training_path=TRAINING_PATH):
     return train_set, test_set
 
 
-def tokenize(sen):
-    return word_tokenize(sen.lower())
-
-
 def create_batched_ds(encoder, window, sens, labs):
 
     text = np.array(sens)
@@ -34,7 +30,11 @@ def create_batched_ds(encoder, window, sens, labs):
 
     authors = np.array([author_key[a] for a in authors])
 
-    tokens = [tokenize(s) for s in text]
+    tokens = None
+    if type(sens[0]) is str:
+        tokens = [tokenize(s) for s in text]
+    else:
+        tokens = sens
 
     if type(encoder) is Word2Vec:
         encoder = encoder.wv

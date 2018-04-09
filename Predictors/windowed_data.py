@@ -1,5 +1,5 @@
-from nltk.tokenize import word_tokenize
 import numpy as np
+from Processing.processing import tokenize
 
 
 class windowed_data():
@@ -19,12 +19,11 @@ class windowed_data():
 
     def get_next_sentence_gen_(self):
         for s, l in zip(self.sentences, self.labels):
-            yield self.tokenize_(s), l
+            if type(s) is str:
+                yield tokenize(s), l
+            else:
+                yield s, l
         raise StopIteration('No more sentences to offer')
-
-    @staticmethod
-    def tokenize_(sen):
-        return word_tokenize(sen.lower())
 
     def __call__(self):
         while(len(self.senbatchqueue) < self.batchsize):
@@ -37,11 +36,11 @@ class windowed_data():
                 self.senbatchqueue.append(encs[i:i + self.wlen])
                 self.labbatchqueue.append(lab)
 
-        senbatch = self.senbatchqueue[0:5]
-        self.senbatchqueue = self.senbatchqueue[5:]
+        senbatch = self.senbatchqueue[0:self.batchsize]
+        self.senbatchqueue = self.senbatchqueue[self.batchsize:]
 
-        labbatch = self.labbatchqueue[0:5]
-        self.labbatchqueue = self.labbatchqueue[5:]
+        labbatch = self.labbatchqueue[0:self.batchsize]
+        self.labbatchqueue = self.labbatchqueue[self.batchsize:]
 
         return {'windows': np.array(senbatch)}, [self.key[l] for l in labbatch]
 
