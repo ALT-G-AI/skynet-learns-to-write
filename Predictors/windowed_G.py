@@ -1,7 +1,7 @@
 from gensim.models import Word2Vec
 from sklearn.base import BaseEstimator, ClassifierMixin
 from Processing.processing import merge_uncommon_words
-from Predictors.windowed_data import windowed_data
+from Predictors.windowed_data import windowed_data, predictor_data
 import numpy as np
 import tensorflow as tf
 
@@ -80,26 +80,16 @@ class windowedGClassifier(BaseEstimator, ClassifierMixin):
 
     def predict(self, X):
         output_vector = []
+        pred_count = 0
         for sen in X:
-            dummylabels = [0 for i in sen]
-            pre_input_fn = windowed_data(
-                [sen],
-                dummylabels,
-                self.window,
-                1,
-                self.encoder)
+            print("Predicting output", pred_count)
+            pred_count += 1
 
             def input_fn():
-                a = pre_input_fn()[0]
-                return a
+                return predictor_data(sen, self.encoder, self.window)
 
-            preds = []
-            while True:
-                try:
-                    gen = self.dnn_clf.predict(input_fn)
-                    preds.append(next(gen)['probabilities'])
-                except StopIteration:
-                    break
+            gen = self.dnn_clf.predict(input_fn)
+            preds = next(gen)['probabilities']
 
             sumprobs = np.sum([np.log(p) for p in preds], 0)
 

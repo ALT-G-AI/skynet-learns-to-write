@@ -2,6 +2,27 @@ import numpy as np
 from Processing.processing import tokenize
 
 
+def predictor_data(sen, encoder, wlen):
+
+    tokens = tokenize(sen)
+
+    if len(tokens) < wlen:
+        padding = [tokens[-1] for i in range(wlen - len(tokens))]
+        tokens = tokens + padding
+
+    def enc_with_uncommon(t):
+        if t in encoder:
+            return encoder[t]
+        else:
+            return encoder['#$UNCOMMON$#']
+
+    windows = [
+        [enc_with_uncommon(t) for t in tokens[i:i + wlen]]
+        for i in range(len(tokens) + 1 - wlen)]
+
+    return {'windows': np.array(windows)}
+
+
 class windowed_data():
     def __init__(self, sentences, labels, wlen, batchsize, encoder):
         self.sentences = sentences
@@ -20,8 +41,19 @@ class windowed_data():
     def get_next_sentence_gen_(self):
         for s, l in zip(self.sentences, self.labels):
             if type(s) is str:
-                yield tokenize(s), l
+                tokens = tokenize(s)
+                if len(tokens) < self.wlen:
+                    padding = [
+                        tokens[-1]
+                        for i in range(self.wlen - len(tokens))]
+                    tokens = tokens + padding
+                yield tokens, l
             else:
+                if len(s) < self.wlen:
+                    padding = [
+                        s[-1]
+                        for i in range(self.wlen - len(s))]
+                    s = s + padding
                 yield s, l
         raise StopIteration('No more sentences to offer')
 
