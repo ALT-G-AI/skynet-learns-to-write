@@ -36,8 +36,6 @@ class ForestClassifier(BaseEstimator, ClassifierMixin):
     def predict(self, X):
         return self.forest_clf.predict(self.reshape_(X))
 
-filename = 'trained_model_forest.pkl'
-
 if __name__ == '__main__':
     from data.import_data import import_data
     from data.padded_sentences import PaddedSentenceTransformer
@@ -68,21 +66,14 @@ if __name__ == '__main__':
         if (i % 100) == 0:
             print("\niter: {}/{}\n".format(i, num))
 
-        try:
-            enc = data_enc.transform([X_test[i]])
-            pred = label_enc.inverse_transform(myc.predict(enc))
+        enc = data_enc.transform([X_test[i]])
+        pred = label_enc.inverse_transform(myc.predict(enc))
 
-            correct = y_test[i]
-            if pred[0] != correct:
-                incorrect += 1
-            
-            print("Predicted {}, label was {}\n".format(pred, correct))
+        correct = y_test[i]
+        if pred[0] != correct:
+            incorrect += 1
 
-        except KeyError:
-            # catch encoding exceptions from unknown words (TODO)
-            count_exep += 1
-
-        
+        print("Predicted {}, label was {}".format(pred, correct))
 
     print("{} exception sentences out of {}".format(count_exep, num))
     print("Accuracy is {}".format(1.0 - float(incorrect)/float((num - count_exep))))
