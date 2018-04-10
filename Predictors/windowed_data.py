@@ -30,7 +30,13 @@ class windowed_data():
 
             sen, lab = next(self.generator)
 
-            encs = [self.encoder[t] for t in sen]
+            def enc_with_uncommon(t):
+                if t in self.encoder:
+                    return self.encoder[t]
+                else:
+                    return self.encoder['#$UNCOMMON$#']
+
+            encs = [enc_with_uncommon(t) for t in sen]
 
             for i in range(len(encs) + 1 - self.wlen):
                 self.senbatchqueue.append(encs[i:i + self.wlen])

@@ -81,16 +81,13 @@ class windowedGClassifier(BaseEstimator, ClassifierMixin):
     def predict(self, X):
         output_vector = []
         for sen in X:
-            print('a')
             dummylabels = [0 for i in sen]
-            print('b')
             pre_input_fn = windowed_data(
                 [sen],
                 dummylabels,
                 self.window,
                 1,
                 self.encoder)
-            print('c')
 
             def input_fn():
                 a = pre_input_fn()[0]
@@ -104,13 +101,12 @@ class windowedGClassifier(BaseEstimator, ClassifierMixin):
                 except StopIteration:
                     break
 
-            print('e')
             sumprobs = np.sum([np.log(p) for p in preds], 0)
-            print('f')
+
             index = np.argmax(sumprobs)
-            print('g')
+
             inv_key = {v: k for k, v in self.key.items()}
-            print('h')
+
             output_vector.append(inv_key[index])
 
         return output_vector
