@@ -62,7 +62,7 @@ if __name__ == '__main__':
     y_test = np.array(te.author)
 
     count_exep = 0
-    num = 5000
+    num = len(te.text)
     incorrect = 0
     for i in range(num): 
         if (i % 100) == 0:
@@ -78,9 +78,8 @@ if __name__ == '__main__':
             
             print("Predicted {}, label was {}\n".format(pred, correct))
 
-        except Exception as e:
+        except KeyError:
             # catch encoding exceptions from unknown words (TODO)
-            #print(e)
             count_exep += 1
 
         
