@@ -18,4 +18,4 @@ def merge_uncommon_words(sens, thresh):
         else:
             return w
     print("Evaluating Uncommon Words")
-    return [[fix(w) for w in s] for s in sens]
+    return [[fix(w) for w in s] for s in tokenized_sens]
