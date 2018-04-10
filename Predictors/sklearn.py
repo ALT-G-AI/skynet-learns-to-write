@@ -42,7 +42,7 @@ class SklearnClassifier(ABC, BaseEstimator, ClassifierMixin):
     def predict(self, X):
         return self.clf.predict(self.reshape_(X))
 
-def test_sklearnclassifier(Clf, **kwargs):
+def test_sklearnclassifier(Clf, train_limit=None, **kwargs):
     from data.import_data import import_data
     from data.padded_sentences import PaddedSentenceTransformer
     from data.numbered_authors import NumberAuthorsTransformer
@@ -54,8 +54,11 @@ def test_sklearnclassifier(Clf, **kwargs):
 
     myc = Clf(**kwargs)
 
-    data_train = data_enc.fit_transform(tr.text)
-    labels_train = label_enc.fit_transform(tr.author)
+    if train_limit == None:
+        train_limit = len(tr.text)
+
+    data_train = data_enc.fit_transform(tr.text[:train_limit])
+    labels_train = label_enc.fit_transform(tr.author[:train_limit])
 
     myc.fit(data_train, labels_train)
 
@@ -80,5 +83,5 @@ def test_sklearnclassifier(Clf, **kwargs):
 
         print("Predicted {}, label was {}".format(pred, correct))
 
-    print("Accuracy is {}".format(1.0 - float(incorrect)/float((num - count_exep))))
+    print("Accuracy is {}".format(1.0 - float(incorrect)/float(num)))
 
