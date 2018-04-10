@@ -1,9 +1,8 @@
 from gensim.models import Word2Vec
 from sklearn.base import BaseEstimator, ClassifierMixin
-from data.import_data import create_batched_ds
 from Processing.processing import merge_uncommon_words
 from Predictors.windowed_data import windowed_data
-
+import numpy as np
 import tensorflow as tf
 
 
@@ -43,11 +42,13 @@ class windowedGClassifier(BaseEstimator, ClassifierMixin):
 
         enc_size = self.encoder_size
 
+        tf.logging.set_verbosity(tf.logging.FATAL)
+
         fc = tf.feature_column.numeric_column(
             'windows',
             shape=[self.window, enc_size])
 
-        dnn_clf = tf.estimator.DNNClassifier(
+        self.dnn_clf = tf.estimator.DNNClassifier(
             hidden_units=self.DNNlayers,
             n_classes=3,
             feature_columns=[fc],
@@ -61,12 +62,14 @@ class windowedGClassifier(BaseEstimator, ClassifierMixin):
             self.batch_n,
             self.encoder)
 
+        self.key = input_fn.key
+
         batch_count = 1
 
         while True:
             try:
                 print("Running batch", batch_count)
-                dnn_clf.train(
+                self.dnn_clf.train(
                     input_fn,
                     steps=self.training_steps)
 
@@ -76,4 +79,38 @@ class windowedGClassifier(BaseEstimator, ClassifierMixin):
                 break
 
     def predict(self, X):
-        pass
+        output_vector = []
+        for sen in X:
+            print('a')
+            dummylabels = [0 for i in sen]
+            print('b')
+            pre_input_fn = windowed_data(
+                [sen],
+                dummylabels,
+                self.window,
+                1,
+                self.encoder)
+            print('c')
+
+            def input_fn():
+                a = pre_input_fn()[0]
+                return a
+
+            preds = []
+            while True:
+                try:
+                    gen = self.dnn_clf.predict(input_fn)
+                    preds.append(next(gen)['probabilities'])
+                except StopIteration:
+                    break
+
+            print('e')
+            sumprobs = np.sum([np.log(p) for p in preds], 0)
+            print('f')
+            index = np.argmax(sumprobs)
+            print('g')
+            inv_key = {v: k for k, v in self.key.items()}
+            print('h')
+            output_vector.append(inv_key[index])
+
+        return output_vector
