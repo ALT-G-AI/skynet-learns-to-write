@@ -6,7 +6,9 @@ import numpy as np
 # doens't really do much. See data.{padded_sentences, named_authors} for
 # data processing
 
+
 class SklearnClassifier(ABC, BaseEstimator, ClassifierMixin):
+
     """
     generic wrapper for sklearn classifiers
     """
@@ -20,7 +22,7 @@ class SklearnClassifier(ABC, BaseEstimator, ClassifierMixin):
 
     def __init__(self, **kwargs):
         self.init_clf_(**kwargs)
-        
+
     @staticmethod
     def reshape_(arr):
         # input data is (num_sentences, sentence_length, word_encoding_length)
@@ -42,10 +44,13 @@ class SklearnClassifier(ABC, BaseEstimator, ClassifierMixin):
     def predict(self, X):
         return self.clf.predict(self.reshape_(X))
 
+
 def test_sklearnclassifier(Clf, train_limit=None, **kwargs):
     from data.import_data import import_data
     from data.padded_sentences import PaddedSentenceTransformer
     from data.numbered_authors import NumberAuthorsTransformer
+    from sklearn.model_selection import cross_val_predict
+    from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score, accuracy_score
 
     tr, te = import_data()
 
@@ -57,31 +62,28 @@ def test_sklearnclassifier(Clf, train_limit=None, **kwargs):
     if train_limit == None:
         train_limit = len(tr.text)
 
-    data_train = data_enc.fit_transform(tr.text[:train_limit])
-    labels_train = label_enc.fit_transform(tr.author[:train_limit])
+    X_train = data_enc.fit_transform(tr.text[:train_limit])
+    y_train = label_enc.fit_transform(tr.author[:train_limit])
 
-    myc.fit(data_train, labels_train)
+    print("Running cross-validation...")
+    y_train_pred = cross_val_predict(myc, X_train, y_train)
 
-    # test the trained model on the testing data
-    # very rudimentary test for now
+    print("\nStatistics...")
 
-    X_test = np.array(te.text)
-    y_test = np.array(te.author)
+    confusion = confusion_matrix(y_train, y_train_pred)
+    print("Confucion Matrix:")
+    print(confusion)
+          # see textbook page 142. Ideally this should be non-zero only on the
+          # diagonal (like an identity matrix)
 
-    num = 1000 #len(te.text)
-    incorrect = 0
-    for i in range(num): 
-        if (i % 100) == 0:
-            print("\niter: {}/{}\n".format(i, num))
+    accuracy = accuracy_score(y_train, y_train_pred)
+    print("Accuracy: {}".format(accuracy))
 
-        enc = data_enc.transform([X_test[i]])
-        pred = label_enc.inverse_transform(myc.predict(enc))
+    precision = precision_score(y_train, y_train_pred, average='micro')
+    print("Precision: {}".format(precision))
 
-        correct = y_test[i]
-        if pred[0] != correct:
-            incorrect += 1
+    recall = recall_score(y_train, y_train_pred, average='micro')
+    print("Recall: {}".format(recall))
 
-        print("Predicted {}, label was {}".format(pred, correct))
-
-    print("Accuracy is {}".format(1.0 - float(incorrect)/float(num)))
-
+    f1 = f1_score(y_train, y_train_pred, average='micro')
+    print("F1 Score: {}".format(f1))
