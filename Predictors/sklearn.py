@@ -54,7 +54,7 @@ class SklearnClassifier(ABC, BaseEstimator, ClassifierMixin):
         return self.clf.get_params(deep)
 
 
-def get_data_(train_limit):
+def get_data_(train_limit, AuthorProc):
     tr, te = import_data()
 
     # cross_val_predict (test_sklearnclassifier) does the train/test/cv split
@@ -62,7 +62,7 @@ def get_data_(train_limit):
     text = list(tr.text) + list(te.text)
     author = list(tr.author) + list(te.author)
 
-    label_enc = NumberAuthorsTransformer()
+    label_enc = AuthorProc()
     data_enc = PaddedSentenceTransformer(encoder_size=100)
 
     if train_limit == None:
@@ -74,19 +74,25 @@ def get_data_(train_limit):
     return (X, y)
 
 
-def test_estimator_(myc, train_limit):
-    X_train, y_train = get_data_(train_limit)
+def test_estimator_(myc, AuthorProc, train_limit):
+    X_train, y_train = get_data_(train_limit, AuthorProc)
 
     print("Running cross-validation...")
     y_train_pred = cross_val_predict(myc, X_train, y_train)
 
     print("\nStatistics...")
 
-    confusion = confusion_matrix(y_train, y_train_pred)
-    print("Confucion Matrix:")
-    print(confusion)
-          # see textbook page 142. Ideally this should be non-zero only on the
-          # diagonal (like an identity matrix)
+    try:
+        confusion = confusion_matrix(y_train, y_train_pred)
+        print("Confucion Matrix:")
+        print(confusion)
+        # see textbook page 142. Ideally this should be non-zero only on the
+        # diagonal (like an identity matrix)
+    except ValueError:
+        print("Confusion matrix not supported for that encoding")
+        # Probably to do with one-hot ecoding
+        # ValueError: multilabel-indicator is not supported
+        # https://stackoverflow.com/questions/42950705/valueerror-cant-handle-mix-of-multilabel-indicator-and-binary
 
     accuracy = accuracy_score(y_train, y_train_pred)
     print("Accuracy: {}".format(accuracy))
@@ -101,14 +107,14 @@ def test_estimator_(myc, train_limit):
     print("F1 Score: {}".format(f1))
 
 
-def test_sklearnclassifier(Clf, train_limit=None, **kwargs):
+def test_sklearnclassifier(Clf, AuthorProc=NumberAuthorsTransformer, train_limit=None, **kwargs):
     myc = Clf(**kwargs)
 
-    test_estimator_(myc, train_limit)
+    test_estimator_(myc, AuthorProc, train_limit)
 
 
-def random_search_params(Clf, param_dist, train_limit=None, n_iter=100):
-    X, y = get_data_(train_limit)
+def random_search_params(Clf, param_dist, AuthorProc=NumberAuthorsTransformer, train_limit=None, n_iter=100):
+    X, y = get_data_(train_limit, AuthorProc)
     my_clf = Clf()
 
     search = RandomizedSearchCV(my_clf, param_dist, n_iter=n_iter, n_jobs=-1)
@@ -119,4 +125,4 @@ def random_search_params(Clf, param_dist, train_limit=None, n_iter=100):
     print("\nBest Parameters: {}".format(search.best_params_))
 
     print("\nTesting best estimator...")
-    test_estimator_(search.best_estimator_, train_limit)
+    test_estimator_(search.best_estimator_, AuthorProc, train_limit)
