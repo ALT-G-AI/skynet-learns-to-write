@@ -54,7 +54,7 @@ class SklearnClassifier(ABC, BaseEstimator, ClassifierMixin):
         return self.clf.get_params(deep)
 
 
-def get_data_(train_limit, AuthorProc):
+def get_data_(train_limit, AuthorProc, DataProc, labels_enc_with_data):
     tr, te = import_data()
 
     # cross_val_predict (test_sklearnclassifier) does the train/test/cv split
@@ -63,19 +63,23 @@ def get_data_(train_limit, AuthorProc):
     author = list(tr.author) + list(te.author)
 
     label_enc = AuthorProc()
-    data_enc = PaddedSentenceTransformer(encoder_size=100)
+    data_enc = DataProc(encoder_size=100)
 
     if train_limit == None:
         train_limit = len(text)
 
-    X = data_enc.fit_transform(text[:train_limit])
     y = label_enc.fit_transform(author[:train_limit])
+
+    if labels_enc_with_data:
+        X, y = zip(*data_enc.fit_transform(text[:train_limit], y))
+    else:
+        X = data_enc.fit_transform(text[:train_limit])
 
     return (X, y)
 
 
-def test_estimator_(myc, AuthorProc, train_limit):
-    X_train, y_train = get_data_(train_limit, AuthorProc)
+def test_estimator_(myc, AuthorProc, DataProc, train_limit, labels_enc_with_data):
+    X_train, y_train = get_data_(train_limit, AuthorProc, DataProc, labels_enc_with_data)
 
     print("Running cross-validation...")
     y_train_pred = cross_val_predict(myc, X_train, y_train)
@@ -84,7 +88,7 @@ def test_estimator_(myc, AuthorProc, train_limit):
 
     try:
         confusion = confusion_matrix(y_train, y_train_pred)
-        print("Confucion Matrix:")
+        print("Confusion Matrix:")
         print(confusion)
         # see textbook page 142. Ideally this should be non-zero only on the
         # diagonal (like an identity matrix)
@@ -107,14 +111,19 @@ def test_estimator_(myc, AuthorProc, train_limit):
     print("F1 Score: {}".format(f1))
 
 
-def test_sklearnclassifier(Clf, AuthorProc=NumberAuthorsTransformer, train_limit=None, **kwargs):
+def test_sklearnclassifier(Clf, AuthorProc=NumberAuthorsTransformer,
+                           DataProc=PaddedSentenceTransformer,
+                           train_limit=None, labels_enc_with_data=False,
+                           **kwargs):
     myc = Clf(**kwargs)
 
-    test_estimator_(myc, AuthorProc, train_limit)
+    test_estimator_(myc, AuthorProc, DataProc, train_limit, labels_enc_with_data)
 
 
-def random_search_params(Clf, param_dist, AuthorProc=NumberAuthorsTransformer, train_limit=None, n_iter=100):
-    X, y = get_data_(train_limit, AuthorProc)
+def random_search_params(Clf, param_dist, AuthorProc=NumberAuthorsTransformer,
+                         DataProc=PaddedSentenceTransformer,
+                         train_limit=None, n_iter=100, labels_enc_with_data=False):
+    X, y = get_data_(train_limit, AuthorProc, DataProc, labels_enc_with_data)
     my_clf = Clf()
 
     search = RandomizedSearchCV(my_clf, param_dist, n_iter=n_iter, n_jobs=-1)
@@ -125,4 +134,4 @@ def random_search_params(Clf, param_dist, AuthorProc=NumberAuthorsTransformer, t
     print("\nBest Parameters: {}".format(search.best_params_))
 
     print("\nTesting best estimator...")
-    test_estimator_(search.best_estimator_, AuthorProc, train_limit)
+    test_estimator_(search.best_estimator_, AuthorProc, DataProc, train_limit, labels_enc_with_data)
