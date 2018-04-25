@@ -132,22 +132,28 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
 if __name__ == '__main__':
     from data.numbered_authors import NumberAuthorsTransformer
     from data.windowed_sentences import WindowedSentenceTransformer
-    from Predictors.sklearn import get_data_
-
+    from data.import_data import import_data
+    from Predictors.sklearn import show_stats
     
-    X_tup, y_tup = get_data_(None, NumberAuthorsTransformer, WindowedSentenceTransformer, True, 50)
+    tr, te = import_data()
+    data_enc = WindowedSentenceTransformer(encoder_size=50)
+    label_enc = NumberAuthorsTransformer()
+
+    y_train = label_enc.fit_transform(list(tr.author))
+    y_test = label_enc.transform(list(te.author))
+    
+    X_train, y_train = zip(*data_enc.fit_transform(tr.text, y_train))
+    X_test, y_test = zip(*data_enc.transform(te.text, y_test))
 
     sess = tf.Session()
     with tf.Session() as sess:
         with sess.as_default():
-            #rnn = RNNClassifier(CellType = tf.contrib.rnn.LSTMCell, n_out_neurons=4, n_outputs=1, n_epochs=100, n_neurons=200,
-            #                    state_is_tuple=False) # TODO state_is_tuple is depricated
-            rnn = RNNClassifier(CellType = tf.contrib.rnn.GRUCell, n_out_neurons=4, n_outputs=1, n_epochs=100, n_neurons=200)
+            rnn = RNNClassifier(CellType = tf.contrib.rnn.LSTMCell, n_out_neurons=3, n_outputs=1, n_epochs=100, n_neurons=200,
+                                state_is_tuple=False) # TODO state_is_tuple is depricated
+            #rnn = RNNClassifier(CellType = tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=100, n_neurons=200)
 
-            rnn.fit(np.array(X_tup), np.array(y_tup))
+            rnn.fit(np.array(X_train), np.array(y_train))
 
-            predict_data = np.array(X_tup)[:10]
-            predict_labels = np.array(y_tup)[:10]
-            print("\nPrediction prob:\n{}".format(rnn.predict_proba(predict_data)))
-            print("\nPrediction:\n{}".format(rnn.predict(predict_data)))
-            print("Target was {}".format(predict_labels))
+            y_test_pred = rnn.predict(X_test)
+
+    show_stats(y_test, y_test_pred)

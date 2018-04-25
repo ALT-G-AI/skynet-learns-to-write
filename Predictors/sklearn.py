@@ -78,16 +78,11 @@ def get_data_(train_limit, AuthorProc, DataProc, labels_enc_with_data, encoder_s
     return (X, y)
 
 
-def test_estimator_(myc, AuthorProc, DataProc, train_limit, labels_enc_with_data):
-    X_train, y_train = get_data_(train_limit, AuthorProc, DataProc, labels_enc_with_data, 100)
-
-    print("Running cross-validation...")
-    y_train_pred = cross_val_predict(myc, X_train, y_train)
-
+def show_stats(y_test, y_test_pred):
     print("\nStatistics...")
 
     try:
-        confusion = confusion_matrix(y_train, y_train_pred)
+        confusion = confusion_matrix(y_test, y_test_pred)
         print("Confusion Matrix:")
         print(confusion)
         # see textbook page 142. Ideally this should be non-zero only on the
@@ -98,16 +93,16 @@ def test_estimator_(myc, AuthorProc, DataProc, train_limit, labels_enc_with_data
         # ValueError: multilabel-indicator is not supported
         # https://stackoverflow.com/questions/42950705/valueerror-cant-handle-mix-of-multilabel-indicator-and-binary
 
-    accuracy = accuracy_score(y_train, y_train_pred)
+    accuracy = accuracy_score(y_test, y_test_pred)
     print("Accuracy: {}".format(accuracy))
 
-    precision = precision_score(y_train, y_train_pred, average='micro')
+    precision = precision_score(y_test, y_test_pred, average='micro')
     print("Precision: {}".format(precision))
 
-    recall = recall_score(y_train, y_train_pred, average='micro')
+    recall = recall_score(y_test, y_test_pred, average='micro')
     print("Recall: {}".format(recall))
 
-    f1 = f1_score(y_train, y_train_pred, average='micro')
+    f1 = f1_score(y_test, y_test_pred, average='micro')
     print("F1 Score: {}".format(f1))
 
 
@@ -116,8 +111,12 @@ def test_sklearnclassifier(Clf, AuthorProc=NumberAuthorsTransformer,
                            train_limit=None, labels_enc_with_data=False,
                            **kwargs):
     myc = Clf(**kwargs)
+    X_train, y_train = get_data_(train_limit, AuthorProc, DataProc, labels_enc_with_data, 100)
 
-    test_estimator_(myc, AuthorProc, DataProc, train_limit, labels_enc_with_data)
+    print("Running cross-validation...")
+    y_train_pred = cross_val_predict(myc, X_train, y_train)
+
+    show_stats(y_train, y_train_pred)
 
 
 def random_search_params(Clf, param_dist, AuthorProc=NumberAuthorsTransformer,
@@ -134,4 +133,5 @@ def random_search_params(Clf, param_dist, AuthorProc=NumberAuthorsTransformer,
     print("\nBest Parameters: {}".format(search.best_params_))
 
     print("\nTesting best estimator...")
-    test_estimator_(search.best_estimator_, AuthorProc, DataProc, train_limit, labels_enc_with_data)
+    y_pred = cross_val_predict(search.best_estimator_, X, y)
+    show_stats(y, y_pred)
