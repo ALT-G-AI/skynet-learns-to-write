@@ -1,4 +1,5 @@
 from sklearn.base import BaseEstimator, ClassifierMixin
+from math import floor
 import tensorflow as tf
 import numpy as np
 
@@ -39,10 +40,10 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
         tensorflow construction stage
         """
 
-        self.X = tf.placeholder(tf.float32, [self.batch_size, self.n_steps, self.n_inputs])
+        self.X = tf.placeholder(tf.float32, [None, self.n_steps, self.n_inputs])
         #print("\n\nExpecting X.shape = {}, dtype = {}\n".format(self.X.shape, self.X.dtype))
         #y = tf.placeholder(tf.int64, [None, self.n_outputs])
-        self.y = tf.placeholder(tf.int64, [self.batch_size])
+        self.y = tf.placeholder(tf.int64, [None])
         #print("\n\nExpecting y.shape = {}, dtype = {}\n".format(self.y.shape, self.y.dtype))
 
         cell = self.CellType(num_units=self.n_neurons)
@@ -65,6 +66,15 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
         sentences and labels should already be encoded
         """
 
+        test_prop = 0.1
+        train_prop = 1.0 - test_prop
+        split = floor(train_prop*sentences.shape[0])
+
+        X_train = sentences[:split]
+        X_test = sentences[split:]
+        y_train = labels[:split]
+        y_test = labels[split:]
+
         print("Training RNN Classifier")
 
         with tf.Session() as sess:
@@ -72,9 +82,9 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
             for epoch in range(self.n_epochs):
                 for iteration in range(sentences.shape[0] // self.batch_size):
                     # pick a random batch
-                    batch_choices = np.random.choice(sentences.shape[0], self.batch_size, replace=True)
-                    X_batch = sentences[batch_choices]
-                    y_batch = labels[batch_choices]
+                    batch_choices = np.random.choice(X_train.shape[0], self.batch_size, replace=True)
+                    X_batch = X_train[batch_choices]
+                    y_batch = y_train[batch_choices]
                     #print("type(X_batch = {}, type(y_batch) = {}\n".format(type(X_batch), type(y_batch)))
                     #print("X_batch.shape = {}, y_batch.shape = {}\n".format(X_batch.shape, y_batch.shape))
                     #print("X_batch.dtype = {}, y_batch.dtype = {}\n".format(X_batch.dtype, y_batch.dtype))
@@ -82,7 +92,8 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
                     sess.run(self.training_op, feed_dict = { self.X : X_batch , self.y : y_batch })
 
                 acc_train = self.accuracy.eval(feed_dict={self.X: X_batch, self.y: y_batch})
-                print("{}/{}:\tTrain accuracy:\t{}".format(epoch, self.n_epochs, acc_train))
+                acc_test =  self.accuracy.eval(feed_dict={self.X: X_test, self.y: y_test})
+                print("{}/{}:\tTrain accuracy:\t{:.3f}\tTest accuracy:\t{:.3f}".format(epoch, self.n_epochs, acc_train, acc_test))
 
         return self
 
