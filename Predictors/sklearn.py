@@ -54,7 +54,7 @@ class SklearnClassifier(ABC, BaseEstimator, ClassifierMixin):
         return self.clf.get_params(deep)
 
 
-def get_data_(train_limit, AuthorProc, DataProc, labels_enc_with_data):
+def get_data_(train_limit, AuthorProc, DataProc, labels_enc_with_data, encoder_size):
     tr, te = import_data()
 
     # cross_val_predict (test_sklearnclassifier) does the train/test/cv split
@@ -63,7 +63,7 @@ def get_data_(train_limit, AuthorProc, DataProc, labels_enc_with_data):
     author = list(tr.author) + list(te.author)
 
     label_enc = AuthorProc()
-    data_enc = DataProc(encoder_size=100)
+    data_enc = DataProc(encoder_size=encoder_size)
 
     if train_limit == None:
         train_limit = len(text)
@@ -79,7 +79,7 @@ def get_data_(train_limit, AuthorProc, DataProc, labels_enc_with_data):
 
 
 def test_estimator_(myc, AuthorProc, DataProc, train_limit, labels_enc_with_data):
-    X_train, y_train = get_data_(train_limit, AuthorProc, DataProc, labels_enc_with_data)
+    X_train, y_train = get_data_(train_limit, AuthorProc, DataProc, labels_enc_with_data, 100)
 
     print("Running cross-validation...")
     y_train_pred = cross_val_predict(myc, X_train, y_train)
@@ -123,7 +123,7 @@ def test_sklearnclassifier(Clf, AuthorProc=NumberAuthorsTransformer,
 def random_search_params(Clf, param_dist, AuthorProc=NumberAuthorsTransformer,
                          DataProc=PaddedSentenceTransformer,
                          train_limit=None, n_iter=100, labels_enc_with_data=False):
-    X, y = get_data_(train_limit, AuthorProc, DataProc, labels_enc_with_data)
+    X, y = get_data_(train_limit, AuthorProc, DataProc, labels_enc_with_data, 100)
     my_clf = Clf()
 
     search = RandomizedSearchCV(my_clf, param_dist, n_iter=n_iter, n_jobs=-1)
