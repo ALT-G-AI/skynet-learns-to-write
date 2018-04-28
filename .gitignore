@@ -50,3 +50,7 @@ fabric.properties
 
 # Pycaches
 */__pycache__
+
+__pycache__
+*~
+*#
