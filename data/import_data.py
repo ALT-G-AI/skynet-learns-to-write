@@ -27,7 +27,7 @@ def create_batched_ds(encoder, window, sens, labs):
     authors = np.array(labs)
 
     author_set = set(authors)
-    author_key = {k: v for k, v in zip(author_set, range(len(author_set)))}
+    author_key = {v: i for i, v in enumerate(author_set)}
 
     print("Key for authors is:\n", author_key)
 
