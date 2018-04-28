@@ -1,6 +1,6 @@
 from scipy.stats import expon
 from sklearn.ensemble import RandomForestClassifier
-# from sklearn.preprocessing import LabelBinarizer
+from sklearn.preprocessing import LabelBinarizer
 
 from Predictors.sklearnclassifier import SklearnClassifier, test_sklearnclassifier, random_search_params
 from data.windowed_sentences import WindowedSentenceTransformer
