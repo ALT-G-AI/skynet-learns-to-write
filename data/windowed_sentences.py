@@ -1,8 +1,8 @@
-from data.import_data import tokenize, import_data
+import numpy as np
 from gensim.models import Word2Vec
 from sklearn.base import BaseEstimator, TransformerMixin
 
-import numpy as np
+from data.import_data import tokenize, import_data
 
 
 class WindowedSentenceTransformer(BaseEstimator, TransformerMixin):
@@ -60,7 +60,7 @@ class WindowedSentenceTransformer(BaseEstimator, TransformerMixin):
     def fit_transform(self, X, y):
         windowed_sentences = self.process_data_(X, y)
         # return windowed_sentences # for debugging only
-        windows, labels = zip(*windowed_sentences) # zip is the inverse of itself
+        windows, labels = zip(*windowed_sentences)  # zip is the inverse of itself
         self.fit_(windows)
         enc_windows = self.transform_(windows)
         return zip(enc_windows, labels)
@@ -70,6 +70,7 @@ class WindowedSentenceTransformer(BaseEstimator, TransformerMixin):
         windows, labels = zip(*windowed_sentences)
         enc_windows = self.transform_(windows)
         return zip(enc_windows, labels)
+
 
 if __name__ == '__main__':
     tr, te = import_data()
