@@ -134,7 +134,7 @@ if __name__ == '__main__':
     from data.windowed_sentences import WindowedSentenceTransformer
     from data.padded_sentences import PaddedSentenceTransformer
     from data.import_data import import_data
-    from Predictors.sklearn import show_stats
+    from Predictors.sklearnclassifier import show_stats
     
     tr, te = import_data()
     #data_enc = WindowedSentenceTransformer(encoder_size=50)
