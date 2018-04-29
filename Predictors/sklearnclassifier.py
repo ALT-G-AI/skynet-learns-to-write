@@ -10,7 +10,7 @@ from data.numbered_authors import NumberAuthorsTransformer
 from data.padded_sentences import PaddedSentenceTransformer
 
 
-# doens't really do much. See data.{padded_sentences, named_authors} for
+# doesn't really do much. See data.{padded_sentences, named_authors} for
 # data processing
 
 
