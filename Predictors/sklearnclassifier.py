@@ -42,7 +42,7 @@ class SklearnClassifier(ABC, BaseEstimator, ClassifierMixin):
         """
         sentences = self.reshape_(sentences)
 
-        print("Training Classifier")
+        print("Training Classifier {}".format(self.__class__.__name__))
         self.clf.fit(sentences, labels)
 
         return self
