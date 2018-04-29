@@ -1,4 +1,5 @@
 from scipy.stats import expon
+from sklearn.base import ClassifierMixin
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelBinarizer
 
@@ -10,7 +11,7 @@ class ForestClassifier(SklearnClassifier):
     def init_clf_(self, **kwargs):
         self.clf = RandomForestClassifier(
             #    n_jobs=-1,
-            **kwargs)
+            **kwargs)  # type: ClassifierMixin
 
 
 if __name__ == '__main__':
