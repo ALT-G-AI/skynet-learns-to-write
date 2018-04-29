@@ -132,25 +132,36 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
 if __name__ == '__main__':
     from data.numbered_authors import NumberAuthorsTransformer
     from data.windowed_sentences import WindowedSentenceTransformer
+    from data.padded_sentences import PaddedSentenceTransformer
     from data.import_data import import_data
     from Predictors.sklearn import show_stats
     
     tr, te = import_data()
-    data_enc = WindowedSentenceTransformer(encoder_size=50)
+    #data_enc = WindowedSentenceTransformer(encoder_size=50)
+    data_enc = PaddedSentenceTransformer(encoder_size=50)
     label_enc = NumberAuthorsTransformer()
 
     y_train = label_enc.fit_transform(list(tr.author))
     y_test = label_enc.transform(list(te.author))
     
-    X_train, y_train = zip(*data_enc.fit_transform(tr.text, y_train))
-    X_test, y_test = zip(*data_enc.transform(te.text, y_test))
+    # for WindowedSentenceTransformer
+    #X_train, y_train = zip(*data_enc.fit_transform(tr.text, y_train))
+    #X_test, y_test = zip(*data_enc.transform(te.text, y_test))
+
+    # for PaddedSentenceTransformer
+    X_train = data_enc.fit_transform(tr.text)
+    X_test = data_enc.transform(te.text)
 
     sess = tf.Session()
     with tf.Session() as sess:
         with sess.as_default():
-            rnn = RNNClassifier(CellType = tf.contrib.rnn.LSTMCell, n_out_neurons=3, n_outputs=1, n_epochs=100, n_neurons=200,
-                                state_is_tuple=False) # TODO state_is_tuple is depricated
-            #rnn = RNNClassifier(CellType = tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=100, n_neurons=200)
+            # about 40% accuracy. These two are for WindowedSentenceTransformer
+            # rnn = RNNClassifier(CellType = tf.contrib.rnn.LSTMCell, n_out_neurons=3, n_outputs=1, n_epochs=200, n_neurons=200,
+            #                    state_is_tuple=False) # TODO state_is_tuple is deprecated
+            #rnn = RNNClassifier(CellType = tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=200, n_neurons=200)
+
+            # For using PaddedSentenceTransformer. 69% accuracy on the test set but 100% from early epochs on the training set
+            rnn = RNNClassifier(n_steps=50, CellType = tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=200, n_neurons=200)
 
             rnn.fit(np.array(X_train), np.array(y_train))
 
