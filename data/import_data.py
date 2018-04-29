@@ -35,8 +35,6 @@ def create_batched_ds(encoder, window, sens, labs):
 
     tokens = [tokenize(s) for s in text]
 
-    if type(encoder) is Word2Vec:
-        encoder = encoder.wv
 
     encoded = np.array([np.array([encoder[w] for w in s]) for s in tokens])
 

@@ -49,7 +49,7 @@ class windowedGClassifier(BaseEstimator, ClassifierMixin):
 
         def input_fn():
             ds = create_batched_ds(
-                self.encoder,
+                self.encoder.wv,
                 self.window,
                 sentences,
                 labels)
