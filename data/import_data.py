@@ -1,9 +1,9 @@
-import pandas as pd
-from sklearn.model_selection import train_test_split
 import numpy as np
-from nltk.tokenize import word_tokenize
+import pandas as pd
 import tensorflow as tf
 from gensim.models.word2vec import Word2Vec
+from nltk.tokenize import word_tokenize
+from sklearn.model_selection import train_test_split
 
 TRAINING_PATH = './data/train.csv'
 
@@ -23,7 +23,6 @@ def tokenize(sen):
 
 
 def create_batched_ds(encoder, window, sens, labs):
-
     text = np.array(sens)
     authors = np.array(labs)
 

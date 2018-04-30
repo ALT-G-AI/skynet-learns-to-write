@@ -1,20 +1,20 @@
-from sklearn.base import BaseEstimator, ClassifierMixin
 from abc import ABC, abstractmethod
 
-from data.import_data import import_data
-from data.padded_sentences import PaddedSentenceTransformer
-from data.numbered_authors import NumberAuthorsTransformer
-from sklearn.model_selection import cross_val_predict, RandomizedSearchCV
-from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score, accuracy_score
-
 import numpy as np
+from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score, accuracy_score
+from sklearn.model_selection import cross_val_predict, RandomizedSearchCV
+
+from data.import_data import import_data
+from data.numbered_authors import NumberAuthorsTransformer
+from data.padded_sentences import PaddedSentenceTransformer
+
 
 # doens't really do much. See data.{padded_sentences, named_authors} for
 # data processing
 
 
 class SklearnClassifier(ABC, BaseEstimator, ClassifierMixin):
-
     """
     generic wrapper for sklearn classifiers
     """
