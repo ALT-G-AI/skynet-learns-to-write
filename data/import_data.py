@@ -23,33 +23,37 @@ def tokenize(sen):
 
 
 def create_batched_ds(encoder, window, sens, labs):
-    text = np.array(sens)
+    """
+    batches datasets by author
+    :param encoder:
+    :param window:
+    :param sens:
+    :param labs:
+    :return: (Full dataset
+    """
+    sentences = np.array(sens)
     authors = np.array(labs)
 
-    author_set = set(authors)
-    author_key = {v: i for i, v in enumerate(author_set)}
+    unique_authors = list(set(authors))
 
-    print("Key for authors is:\n", author_key)
+    print("Key for authors is:\n", unique_authors)
 
-    authors = np.array([author_key[a] for a in authors])
-
-    tokens = [tokenize(s) for s in text]
-
+    tokens = [tokenize(s) for s in sentences]
 
     encoded = np.array([np.array([encoder[w] for w in s]) for s in tokens])
 
-    ext_encoded = []
-    ext_authors = []
+    features = []
+    author_labels = []
 
     for s, a in zip(encoded, authors):
         for i in range(len(s) + 1 - window):
-            ext_encoded.append(s[i:i + window])
-            ext_authors.append(a)
+            features.append(s[i:i + window])
+            author_labels.append(a)
 
-    ext_encoded = np.array(ext_encoded)
-    ext_authors = np.array(ext_authors)
+    features = np.array(features)
+    author_labels = np.array(author_labels)
 
     dataset_full = tf.data.Dataset.from_tensor_slices(
-        ({'windows': ext_encoded}, ext_authors))
+        ({'windows': features}, author_labels))
 
-    return dataset_full, author_key
+    return dataset_full, {k: i for i, k in enumerate(unique_authors)}

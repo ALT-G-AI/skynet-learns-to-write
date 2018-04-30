@@ -48,14 +48,12 @@ class windowedGClassifier(BaseEstimator, ClassifierMixin):
             feature_columns=[fc])
 
         def input_fn():
-            ds = create_batched_ds(
+            ds, self.author_key = create_batched_ds(
                 self.encoder.wv,
                 self.window,
                 sentences,
                 labels)
 
-            self.author_key = ds[1]
-            ds = ds[0]
             return ds.shuffle(1000).repeat().batch(self.batch_n)
 
         # logging.getLogger().setLevel(logging.INFO)
