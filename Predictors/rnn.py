@@ -15,11 +15,11 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
     Based upon "Training a Sequence Classifier" on page 587 of "Hands on Machine Learning with Scikit-Learn and TensorFlow" by Aurelien Geron
     """
 
-    def __init__(self, CellType=tf.contrib.rnn.GRUCell, n_neurons=100, learning_rate=0.001, n_outputs=1,
+    def __init__(self, cell_type=tf.contrib.rnn.GRUCell, n_neurons=100, learning_rate=0.001, n_outputs=1,
                  n_out_neurons=10, n_inputs=50, n_steps=5, n_epochs=100, batch_size=100, **cell_args):
         """
-        CellType = The class used to instantiate the cell. This allows us to choose between LSTM, GRU and BasicRNN
-        n_neurons = The number of neurons in the CellType instance
+        cell_type = The class used to instantiate the cell. This allows us to choose between LSTM, GRU and BasicRNN
+        n_neurons = The number of neurons in the cell_type instance
         learning_rate = The learning rate used with the optimiser
         n_outputs = number of outputs
         n_out_neurons = number of neurons in the fully connected output layer (= the number of classes)
@@ -28,7 +28,7 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
         n_epochs = the number of epochs to train for
         batch_size = the number of training examples used in each batch during training
         """
-        self.CellType = CellType
+        self.cell_type = cell_type
         self.n_neurons = n_neurons
         self.learning_rate = learning_rate
         self.n_outputs = n_outputs
@@ -49,7 +49,7 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
         self.X = tf.placeholder(tf.float32, [None, self.n_steps, self.n_inputs])
         self.y = tf.placeholder(tf.int64, [None])
 
-        cell = self.CellType(num_units=self.n_neurons, **self.cell_args)
+        cell = self.cell_type(num_units=self.n_neurons, **self.cell_args)
         outputs, states = tf.nn.dynamic_rnn(cell, self.X, dtype=tf.float32)
 
         out_layer = tf.layers.dense(states, self.n_out_neurons)
@@ -161,12 +161,12 @@ if __name__ == '__main__':
     with tf.Session() as sess:
         with sess.as_default():
             # about 40% accuracy. These two are for WindowedSentenceTransformer
-            # rnn = RNNClassifier(CellType = tf.contrib.rnn.LSTMCell, n_out_neurons=3, n_outputs=1, n_epochs=200, n_neurons=200,
+            # rnn = RNNClassifier(cell_type = tf.contrib.rnn.LSTMCell, n_out_neurons=3, n_outputs=1, n_epochs=200, n_neurons=200,
             #                    state_is_tuple=False) # TODO state_is_tuple is deprecated
-            # rnn = RNNClassifier(CellType = tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=200, n_neurons=200)
+            # rnn = RNNClassifier(cell_type = tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=200, n_neurons=200)
 
             # For using PaddedSentenceTransformer. 69% accuracy on the test set but 100% from early epochs on the training set
-            rnn = RNNClassifier(n_steps=50, CellType=tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=200,
+            rnn = RNNClassifier(n_steps=50, cell_type=tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=200,
                                 n_neurons=200)
 
             rnn.fit(np.array(X_train), np.array(y_train))
