@@ -1,11 +1,11 @@
-from sklearn.base import BaseEstimator, ClassifierMixin
 from math import floor
-import tensorflow as tf
+
 import numpy as np
+import tensorflow as tf
+from sklearn.base import BaseEstimator, ClassifierMixin
 
 
 class RNNClassifier(BaseEstimator, ClassifierMixin):
-
     """
     Generic RNN - can use ordinary RNN, LSTM or GRU
     
@@ -66,7 +66,6 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
 
         self.init = tf.global_variables_initializer()
 
-
     def fit(self, sentences, labels, sess=None):
         """
         sentences and labels should already be encoded
@@ -77,7 +76,7 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
 
         test_prop = 0.1
         train_prop = 1.0 - test_prop
-        split = floor(train_prop*sentences.shape[0])
+        split = floor(train_prop * sentences.shape[0])
 
         X_train = sentences[:split]
         X_test = sentences[split:]
@@ -95,13 +94,15 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
                     X_batch = X_train[batch_choices]
                     y_batch = y_train[batch_choices]
 
-                    sess.run(self.training_op, feed_dict = { self.X : X_batch , self.y : y_batch })
+                    sess.run(self.training_op, feed_dict={self.X: X_batch, self.y: y_batch})
 
                 acc_train = self.accuracy.eval(feed_dict={self.X: X_batch, self.y: y_batch})
-                acc_test =  self.accuracy.eval(feed_dict={self.X: X_test, self.y: y_test})
-                print("{}/{}:\t\tTrain accuracy:\t{:.3f}\tTest accuracy:\t{:.3f}".format(epoch, self.n_epochs, acc_train, acc_test))
+                acc_test = self.accuracy.eval(feed_dict={self.X: X_test, self.y: y_test})
+                print(
+                    "{}/{}:\t\tTrain accuracy:\t{:.3f}\tTest accuracy:\t{:.3f}".format(epoch, self.n_epochs, acc_train,
+                                                                                       acc_test))
 
-            except KeyboardInterrupt: # stop early with Control+C (SIGINT)
+            except KeyboardInterrupt:  # stop early with Control+C (SIGINT)
                 print("\nInterrupted by user at epoch {}/{}".format(epoch, self.n_epochs))
                 return self
 
@@ -125,7 +126,8 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
             sess = tf.get_default_session()
 
         out = sess.run(self.output, feed_dict={self.X: X})
-        return out 
+        return out
+
 
 if __name__ == '__main__':
     from data.numbered_authors import NumberAuthorsTransformer
@@ -134,11 +136,11 @@ if __name__ == '__main__':
     from data.import_data import import_data
     from Predictors.sklearnclassifier import show_stats
 
-    use_padded_sentences = True
+    USE_PADDED_SENTENCES = True
     
     tr, te = import_data()
 
-    if use_padded_sentences:
+    if USE_PADDED_SENTENCES:
         data_enc = PaddedSentenceTransformer(encoder_size=50)
     else:
         data_enc = WindowedSentenceTransformer(encoder_size=50)
@@ -148,7 +150,7 @@ if __name__ == '__main__':
     y_train = label_enc.fit_transform(list(tr.author))
     y_test = label_enc.transform(list(te.author))
 
-    if use_padded_sentences:
+    if USE_PADDED_SENTENCES:
         X_train = data_enc.fit_transform(tr.text)
         X_test = data_enc.transform(te.text)
     else:
@@ -161,10 +163,11 @@ if __name__ == '__main__':
             # about 40% accuracy. These two are for WindowedSentenceTransformer
             # rnn = RNNClassifier(CellType = tf.contrib.rnn.LSTMCell, n_out_neurons=3, n_outputs=1, n_epochs=200, n_neurons=200,
             #                    state_is_tuple=False) # TODO state_is_tuple is deprecated
-            #rnn = RNNClassifier(CellType = tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=200, n_neurons=200)
+            # rnn = RNNClassifier(CellType = tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=200, n_neurons=200)
 
             # For using PaddedSentenceTransformer. 69% accuracy on the test set but 100% from early epochs on the training set
-            rnn = RNNClassifier(n_steps=50, CellType = tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=200, n_neurons=200)
+            rnn = RNNClassifier(n_steps=50, CellType=tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=200,
+                                n_neurons=200)
 
             rnn.fit(np.array(X_train), np.array(y_train))
 
