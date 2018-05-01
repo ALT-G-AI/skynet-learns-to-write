@@ -15,14 +15,18 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
     Based upon "Training a Sequence Classifier" on page 587 of "Hands on Machine Learning with Scikit-Learn and TensorFlow" by Aurelien Geron
     """
 
-    def __init__(self, CellType=tf.contrib.rnn.GRUCell, n_neurons=100, learning_rate=0.001, n_outputs=4,
+    def __init__(self, CellType=tf.contrib.rnn.GRUCell, n_neurons=100, learning_rate=0.001, n_outputs=1,
                  n_out_neurons=10, n_inputs=50, n_steps=5, n_epochs=100, batch_size=100, **cell_args):
         """
+        CellType = The class used to instantiate the cell. This allows us to choose between LSTM, GRU and BasicRNN
+        n_neurons = The number of neurons in the CellType instance
+        learning_rate = The learning rate used with the optimiser
+        n_outputs = number of outputs
+        n_out_neurons = number of neurons in the fully connected output layer (= the number of classes)
         n_inputs = word encoding size
         n_steps = amount of recursion e.g. window size
-        n_neurons = number of neurons in RNN
-        n_out_neurons = number of neurons in the fully connected output layer (= the number of classes)
-        n_outputs = number of outputs
+        n_epochs = the number of epochs to train for
+        batch_size = the number of training examples used in each batch during training
         """
         self.CellType = CellType
         self.n_neurons = n_neurons
@@ -43,10 +47,7 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
         """
 
         self.X = tf.placeholder(tf.float32, [None, self.n_steps, self.n_inputs])
-        #print("\n\nExpecting X.shape = {}, dtype = {}\n".format(self.X.shape, self.X.dtype))
-        #y = tf.placeholder(tf.int64, [None, self.n_outputs])
         self.y = tf.placeholder(tf.int64, [None])
-        #print("\n\nExpecting y.shape = {}, dtype = {}\n".format(self.y.shape, self.y.dtype))
 
         cell = self.CellType(num_units=self.n_neurons, **self.cell_args)
         outputs, states = tf.nn.dynamic_rnn(cell, self.X, dtype=tf.float32)
@@ -93,9 +94,6 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
                     batch_choices = np.random.choice(X_train.shape[0], self.batch_size, replace=True)
                     X_batch = X_train[batch_choices]
                     y_batch = y_train[batch_choices]
-                    #print("type(X_batch = {}, type(y_batch) = {}\n".format(type(X_batch), type(y_batch)))
-                    #print("X_batch.shape = {}, y_batch.shape = {}\n".format(X_batch.shape, y_batch.shape))
-                    #print("X_batch.dtype = {}, y_batch.dtype = {}\n".format(X_batch.dtype, y_batch.dtype))
 
                     sess.run(self.training_op, feed_dict = { self.X : X_batch , self.y : y_batch })
 
@@ -111,7 +109,7 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
 
     def predict_proba(self, X, sess=None):
         """
-        probabillites for each class
+        probabilities for each class
         """
         if sess is None:
             sess = tf.get_default_session()
@@ -135,24 +133,29 @@ if __name__ == '__main__':
     from data.padded_sentences import PaddedSentenceTransformer
     from data.import_data import import_data
     from Predictors.sklearnclassifier import show_stats
+
+    use_padded_sentences = True
     
     tr, te = import_data()
-    #data_enc = WindowedSentenceTransformer(encoder_size=50)
-    data_enc = PaddedSentenceTransformer(encoder_size=50)
+
+    if use_padded_sentences:
+        data_enc = PaddedSentenceTransformer(encoder_size=50)
+    else:
+        data_enc = WindowedSentenceTransformer(encoder_size=50)
+
     label_enc = NumberAuthorsTransformer()
 
     y_train = label_enc.fit_transform(list(tr.author))
     y_test = label_enc.transform(list(te.author))
-    
-    # for WindowedSentenceTransformer
-    #X_train, y_train = zip(*data_enc.fit_transform(tr.text, y_train))
-    #X_test, y_test = zip(*data_enc.transform(te.text, y_test))
 
-    # for PaddedSentenceTransformer
-    X_train = data_enc.fit_transform(tr.text)
-    X_test = data_enc.transform(te.text)
+    if use_padded_sentences:
+        X_train = data_enc.fit_transform(tr.text)
+        X_test = data_enc.transform(te.text)
+    else:
+        X_train, y_train = zip(*data_enc.fit_transform(tr.text, y_train))
+        X_test, y_test = zip(*data_enc.transform(te.text, y_test))
 
-    sess = tf.Session()
+        sess = tf.Session()
     with tf.Session() as sess:
         with sess.as_default():
             # about 40% accuracy. These two are for WindowedSentenceTransformer
