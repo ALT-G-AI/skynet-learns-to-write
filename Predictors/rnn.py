@@ -2,6 +2,7 @@ from math import floor
 
 import numpy as np
 import tensorflow as tf
+import datetime
 from sklearn.base import BaseEstimator, ClassifierMixin
 
 
@@ -66,6 +67,10 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
 
         self.init = tf.global_variables_initializer()
 
+        # group the stuff we care about so it is easier to restore them
+        for operation in (self.X, self.y, self.probs, self.output, self.training_op, self.correct, self.accuracy, self.init):
+            tf.add_to_collection("rnn_members", operation)
+
     def fit(self, sentences, labels, sess=None):
         """
         sentences and labels should already be encoded
@@ -128,6 +133,37 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
         out = sess.run(self.output, feed_dict={self.X: X})
         return out
 
+    def save(self, path=None, sess=None):
+        """
+        Save the model to the disk
+        """
+        if sess is None:
+            sess = tf.get_default_session()
+        
+        if path is None:
+            path = "./RNN-" + datetime.datetime.now().isoformat() + ".ckpt"
+
+        print("Saving to {}".format(path))
+        saver = tf.train.Saver()
+        saver.save(sess, path) 
+
+    def restore(self, path, sess=None):
+        """
+        restore from a saved model
+
+        Don't try restoring into an instance with different parameters. This may not work.
+        You will also need to save and restore the data and label encoders which the model was trained with.
+        """
+        if sess is None:
+            sess = tf.get_default_session()
+
+        print("Restoring from {}".format(path))
+        saver = tf.train.Saver()
+        saver.restore(sess, path)
+
+        self.X, self.y, self.probs, self.output, self.training_op, self.correct, self.accuracy, self.init \
+            = tf.get_collection("rnn_members")
+
 
 if __name__ == '__main__':
     from data.numbered_authors import NumberAuthorsTransformer
@@ -157,7 +193,6 @@ if __name__ == '__main__':
         X_train, y_train = zip(*data_enc.fit_transform(tr.text, y_train))
         X_test, y_test = zip(*data_enc.transform(te.text, y_test))
 
-        sess = tf.Session()
     with tf.Session() as sess:
         with sess.as_default():
             # about 40% accuracy. These two are for WindowedSentenceTransformer
@@ -171,6 +206,21 @@ if __name__ == '__main__':
 
             rnn.fit(np.array(X_train), np.array(y_train))
 
+            PATH = "./rnn_save_test.ckpt"
+            rnn.save(path=PATH)
+
             y_test_pred = rnn.predict(X_test)
 
     show_stats(y_test, y_test_pred)
+
+    # test restoring
+    tf.reset_default_graph()
+
+    with tf.Session() as sess:
+        with sess.as_default():
+            rnn_restored = RNNClassifier(n_steps=50, cell_type=tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=200,
+                                n_neurons=200)
+            rnn_restored.restore(PATH)
+            y_test_pred = rnn_restored.predict(X_test)
+
+    show_stats(y_test, y_test_pred) # observe that these stats are the same as for the original rnn
