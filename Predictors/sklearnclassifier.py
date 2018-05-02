@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score, accuracy_score
-from sklearn.model_selection import cross_val_predict, RandomizedSearchCV
+from sklearn.model_selection import cross_val_predict, RandomizedSearchCV, GridSearchCV
 
 from data.import_data import import_data
 from data.numbered_authors import NumberAuthorsTransformer
@@ -119,19 +119,33 @@ def test_sklearnclassifier(Clf, AuthorProc=NumberAuthorsTransformer,
     show_stats(y_train, y_train_pred)
 
 
-def random_search_params(Clf, param_dist, AuthorProc=NumberAuthorsTransformer,
-                         DataProc=PaddedSentenceTransformer,
-                         train_limit=None, n_iter=100, labels_enc_with_data=False):
-    X, y = get_data_(train_limit, AuthorProc, DataProc, labels_enc_with_data, 100)
+def search_params_(search_type, Clf, param_dist, AuthorProc, DataProc, train_limit, 
+                   labels_enc_with_data, n_jobs, **kwargs):
+    X, y = get_data_(train_limit, AuthorProc, DataProc, labels_enc_with_data, 50)
     my_clf = Clf()
 
-    search = RandomizedSearchCV(my_clf, param_dist, n_iter=n_iter, n_jobs=-1)
+    print("search_params")
+    print("params={}".format(param_dist))
+    search = search_type(my_clf, param_dist, n_jobs=n_jobs, **kwargs)
 
     print("Running search...")
     search.fit(X, y)
 
-    print("\nBest Parameters: {}".format(search.best_params_))
-
     print("\nTesting best estimator...")
     y_pred = cross_val_predict(search.best_estimator_, X, y)
     show_stats(y, y_pred)
+
+    print("\nBest Parameters: {}".format(search.best_params_))
+
+def grid_search_params(Clf, param_dist, AuthorProc=NumberAuthorsTransformer,
+                         DataProc=PaddedSentenceTransformer,
+                         train_limit=None, labels_enc_with_data=False, n_jobs=-1):
+    search_params_(GridSearchCV, Clf, param_dist, AuthorProc, DataProc, train_limit,
+                   labels_enc_with_data, n_jobs)
+
+def random_search_params(Clf, param_dist, AuthorProc=NumberAuthorsTransformer,
+                         DataProc=PaddedSentenceTransformer,
+                         train_limit=None, n_iter=100, labels_enc_with_data=False, n_jobs=-1):
+     search_params_(RandomizedSearchCV, Clf, param_dist, AuthorProc, DataProc, train_limit, 
+                    labels_enc_with_data, n_jobs, n_iter=n_iter)
+
