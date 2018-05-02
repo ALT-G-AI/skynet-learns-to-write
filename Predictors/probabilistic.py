@@ -67,3 +67,16 @@ class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
 
         maxes = [(s, l) for s, h, l in merged if h is maxhits]
         return max(maxes, key=lambda x: x[0])[1]
+
+if __name__ == '__main__':
+    from data.import_data import import_data
+    from sklearn.model_selection import cross_val_predict
+    from Predictors.sklearnclassifier import show_stats
+    # test accuracy, f1, etc
+
+    tr, te = import_data()
+
+    myc = ProbabilisticClassifier()
+    y_train_pred = cross_val_predict(myc, tr.text, tr.author, cv=3)
+
+    show_stats(tr.author, y_train_pred)
