@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from gensim.models.word2vec import Word2Vec
+from gensim.models import KeyedVectors
+from gensim.test.utils import datapath, get_tmpfile
 from nltk.tokenize import word_tokenize
 from sklearn.model_selection import train_test_split
 

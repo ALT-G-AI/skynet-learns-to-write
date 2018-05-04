@@ -1,10 +1,13 @@
 from collections import Counter
 from numpy import log
 from sklearn.base import BaseEstimator, ClassifierMixin
-from import_data import tokenize
+from data.import_data import tokenize, import_data
+
+from sklearn.model_selection import cross_val_predict
+from sklearn.metrics import confusion_matrix
 
 
-class Markov(BaseEstimator, ClassifierMixin):
+class MarkovClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self):
         """
         Called when initializing the classifier
@@ -32,6 +35,7 @@ class Markov(BaseEstimator, ClassifierMixin):
 
                 self.trans[l][w1][w2] += 1
 
+        self.runcount = 0
         self.trained_ = True
 
     def _sen_prob(self, s, l):
@@ -50,7 +54,7 @@ class Markov(BaseEstimator, ClassifierMixin):
                 miss_w += 1
         else:
             wordprob = (sum(trans[first_word].values()) /
-                        sum([sum(w.values()) for w in trans]))
+                        sum([sum(v.values()) for v in trans.values()]))
             prob += log(wordprob)
 
         for w1, w2 in pairings:
@@ -58,9 +62,10 @@ class Markov(BaseEstimator, ClassifierMixin):
                 miss_w += 1
 
             elif w2 not in trans[w1]:
-                wordprob = (sum(trans[w2].values()) /
-                            sum([sum(w.values()) for w in trans]))
-                prob += log(wordprob)
+                if w2 in trans:
+                    wordprob = (sum(trans[w2].values()) /
+                                sum([sum(v.values()) for v in trans.values()]))
+                    prob += log(wordprob)
                 miss_t += 1
 
             else:
@@ -69,7 +74,14 @@ class Markov(BaseEstimator, ClassifierMixin):
         return (prob, miss_w, miss_t)
 
     def _pred_sen(self, s):
-        probs = [self._sen_prob(s, l) for l in self.labels]
+
+        self.runcount += 1
+        if self.runcount % 25 == 0:
+            print("RUNS:", self.runcount)
+
+        o_labels = list(self.labels)
+
+        probs = [self._sen_prob(s, l) for l in o_labels]
 
         # Get minimum missed words
         minw = min([p[1] for p in probs])
@@ -88,8 +100,24 @@ class Markov(BaseEstimator, ClassifierMixin):
 
         # Get its index
         win_index = probs.index(winner)
-
-        return self.labels[win_index]
+        return o_labels[win_index]
 
     def predict(self, X):
         return [self._pred_sen(s) for s in X]
+
+
+if __name__ == '__main__':
+    tr, te = import_data()
+
+    myc = MarkovClassifier()
+    y_train_pred = cross_val_predict(myc, tr.text, tr.author, cv=3, n_jobs=-1)
+
+    CM = confusion_matrix(
+        tr.author,
+        y_train_pred,
+        labels=["EAP", "HPL", "MWS"])
+
+    # Get prob dists across rows
+    prob_CM = CM / CM.sum(axis=1, keepdims=True)
+
+    print(prob_CM)
