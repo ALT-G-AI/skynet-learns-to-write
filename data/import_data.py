@@ -18,7 +18,9 @@ def import_data(training_path=TRAINING_PATH):
     return train_set, test_set
 
 
-def tokenize(sen):
+def tokenize(sen, stop=False):
+    if stop:
+        return word_tokenize(sen.lower()) + ["!#STOP"]
     return word_tokenize(sen.lower())
 
 
