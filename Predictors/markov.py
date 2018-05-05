@@ -8,10 +8,11 @@ from sklearn.metrics import confusion_matrix
 
 
 class MarkovClassifier(BaseEstimator, ClassifierMixin):
-    def __init__(self):
+    def __init__(self, tokenize_args={}):
         """
         Called when initializing the classifier
         """
+        self.tokenize_args = tokenize_args
 
     def fit(self, sentences, labels):
         self.vocab = set()
@@ -26,7 +27,7 @@ class MarkovClassifier(BaseEstimator, ClassifierMixin):
             self.trans[l] = dict()
 
         for s, l in zip(sentences, labels):
-            tokens = tokenize(s, stop=True)
+            tokens = tokenize(s, **self.tokenize_args)
             pairings = zip(tokens, tokens[1:])
 
             for w1, w2 in pairings:
@@ -39,7 +40,7 @@ class MarkovClassifier(BaseEstimator, ClassifierMixin):
         self.trained_ = True
 
     def _sen_prob(self, s, l):
-        tokens = tokenize(s, stop=True)
+        tokens = tokenize(s, **self.tokenize_args)
         pairings = zip(tokens, tokens[1:])
 
         trans = self.trans[l]
@@ -109,8 +110,14 @@ class MarkovClassifier(BaseEstimator, ClassifierMixin):
 if __name__ == '__main__':
     tr, te = import_data()
 
-    myc = MarkovClassifier()
-    y_train_pred = cross_val_predict(myc, tr.text, tr.author, cv=3, n_jobs=-1)
+    myc = MarkovClassifier(
+        tokenize_args={'cull_stopwords': True, 'stem': True})
+    y_train_pred = cross_val_predict(
+        myc,
+        tr.text,
+        tr.author,
+        cv=3,
+        n_jobs=-1)
 
     CM = confusion_matrix(
         tr.author,

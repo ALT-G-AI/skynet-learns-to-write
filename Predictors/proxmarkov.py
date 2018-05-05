@@ -7,6 +7,7 @@ from gensim.scripts.glove2word2vec import glove2word2vec
 from gensim.models import KeyedVectors
 from gensim.test.utils import datapath, get_tmpfile
 from difflib import get_close_matches
+import random
 
 from sklearn.model_selection import cross_val_predict
 from sklearn.metrics import confusion_matrix
@@ -17,12 +18,11 @@ class ProxMarkovClassifier(BaseEstimator, ClassifierMixin):
         """
         Called when initializing the classifier
         """
-
-    def fit(self, sentences, labels):
-
         self.w2v = KeyedVectors.load_word2vec_format(
             './data/glove/glove.6B.50d.txt',
             binary=False)
+
+    def fit(self, sentences, labels):
 
         self.vocab = set()
         self.trans = {}
@@ -34,8 +34,12 @@ class ProxMarkovClassifier(BaseEstimator, ClassifierMixin):
 
         for l in distinct_labels:
             self.trans[l] = dict()
-
+        count = 0
         for s, l in zip(sentences, labels):
+            if count % 50 == 0:
+                print("Training: ", count)
+            count += 1
+
             tokens = tokenize(s, stop=False)
             pairings = zip(tokens, tokens[1:])
 
@@ -53,14 +57,14 @@ class ProxMarkovClassifier(BaseEstimator, ClassifierMixin):
         vocab = self.w2v.wv.vocab
         if w in vocab:
             return w
-        wn = get_close_matches(w, vocab, n=3)[0]
+        wn = self.failsafe_match(w, vocab, n=3)[0]
 
         self.trained_ = True
-        self.falloff = 0.1
+        self.falloff = 0.01
         return wn
 
     def compression(self, d):
-        return exp(-self.falloff * power(d, 2))
+        return exp(-self.falloff * power(d, 2)) + 1e-8
 
     def nearest_word(self, w, words):
         if w in words:
@@ -71,11 +75,17 @@ class ProxMarkovClassifier(BaseEstimator, ClassifierMixin):
 
             return (nw, self.compression(sim))
 
+    def failsafe_match(self, w, vocab, n):
+        try:
+            out = get_close_matches(w, vocab, n=n)[0]
+        except IndexError:
+            out = random.choice(vocab)
+        return out
+
     def _sen_prob(self, s, l):
-        self.runcount += 1
         if self.runcount % 25 == 0:
             print("RUNS:", self.runcount)
-
+        self.runcount += 1
         tokens = tokenize(s, stop=False)
         pairings = zip(tokens, tokens[1:])
 
@@ -83,28 +93,50 @@ class ProxMarkovClassifier(BaseEstimator, ClassifierMixin):
 
         prob = 0
 
-        first_word = tokens[0]
+        fw = tokens[0]
+        fwp = 1
+        wordprob = 0
 
-        fwr, fwp = self.nearest_word(first_word, list(trans.keys()))
+        if fw in trans:
+            wordprob = (sum(trans[fw].values()) /
+                        sum([sum(v.values()) for v in trans.values()]))
+        else:
+            try:
+                fw, fwp = self.nearest_word(fw, list(trans.keys()))
+            except KeyError:
+                fw = self.failsafe_match(fw, self.w2v.wv.vocab, n=1)[0]
+                fw, fwp = self.nearest_word(fw, list(trans.keys()))
 
-        wordprob = (sum(trans[fwr].values()) /
-                    sum([sum(v.values()) for v in trans.values()]))
+                wordprob = (sum(trans[fw].values()) /
+                            sum([sum(v.values()) for v in trans.values()]))
+
         prob += log(wordprob) + log(fwp)
 
         for w1, w2 in pairings:
+
             try:
-                w1r, w1p = self.nearest_word(w1, list(trans.keys()))
-
-                w2r, w2p = self.nearest_word(w2, list(trans[w1].keys()))
+                w1p = 1
+                trans2 = trans[w1]
             except KeyError:
-                w1 = self.fix_word(w1)
-                w2 = self.fix_word(w2)
+                try:
+                    w1, w1p = self.nearest_word(w1, list(trans.keys()))
+                except KeyError:
+                    w1 = self.failsafe_match(w1, self.w2v.wv.vocab, n=1)[0]
+                    w1, w1p = self.nearest_word(w1, list(trans.keys()))
+                trans2 = trans[w1]
 
-                w1r, w1p = self.nearest_word(w1, list(trans.keys()))
+            try:
+                w2p = 1
+                tr_p = trans2[w2]
+            except KeyError:
+                try:
+                    w2, w2p = self.nearest_word(w2, list(trans2.keys()))
+                except KeyError:
+                    w2 = self.failsafe_match(w2, self.w2v.wv.vocab, n=1)[0]
+                    w2, w2p = self.nearest_word(w2, list(trans.keys()))
+                tr_p = trans2[w2]
 
-                w2r, w2p = self.nearest_word(w2, list(trans[w1].keys()))
-
-            prob += log(trans[w1r][w2r] / sum(trans[w1r].values())) +\
+            prob += log(tr_p / sum(trans2.values())) +\
                 log(w1p) +\
                 log(w2p)
 
@@ -134,8 +166,8 @@ if __name__ == '__main__':
     myc = ProxMarkovClassifier()
     y_train_pred = cross_val_predict(
         myc,
-        tr.text[:1000],
-        tr.author[:1000],
+        tr.text,
+        tr.author,
         cv=3,
         n_jobs=-1)
 

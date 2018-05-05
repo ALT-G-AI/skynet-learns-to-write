@@ -2,9 +2,10 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from gensim.models.word2vec import Word2Vec
-from gensim.models import KeyedVectors
-from gensim.test.utils import datapath, get_tmpfile
+
 from nltk.tokenize import word_tokenize
+from nltk.stem import PorterStemmer
+from nltk.corpus import stopwords
 from sklearn.model_selection import train_test_split
 
 TRAINING_PATH = './data/train.csv'
@@ -20,10 +21,20 @@ def import_data(training_path=TRAINING_PATH):
     return train_set, test_set
 
 
-def tokenize(sen, stop=False):
+def tokenize(sen, stop=False, stem=False, cull_stopwords=False):
+
+    tokens = word_tokenize(sen.lower())
+    if stem:
+        if not hasattr(tokenize, 'stemmer'):
+            tokenize.stemmer = PorterStemmer()
+        tokens = [tokenize.stemmer.stem(t) for t in tokens]
+
+    if cull_stopwords:
+        tokens = [t for t in tokens if t not in stopwords.words('english')]
     if stop:
-        return word_tokenize(sen.lower()) + ["!#STOP"]
-    return word_tokenize(sen.lower())
+        tokens = tokens + ["!#STOP"]
+
+    return tokens
 
 
 def create_batched_ds(encoder, window, sens, labs):
