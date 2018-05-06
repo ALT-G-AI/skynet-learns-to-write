@@ -67,7 +67,6 @@ def window_pipe(prior, labels, window):
                 yield s[i:i + window], l
 
 
-
 if __name__ == '__main__':
     tr, te = import_data()
 

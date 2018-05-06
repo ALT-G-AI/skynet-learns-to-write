@@ -7,8 +7,8 @@ from sklearn.model_selection import cross_val_predict
 from sklearn.metrics import confusion_matrix
 
 from keras.models import Sequential
-from keras.layers import Dense
-
+from keras.layers import Dense, Flatten
+from keras.utils import  to_categorical
 from gensim.models import Word2Vec
 
 from data.pipelines import (tokenize_pipe,
@@ -19,6 +19,7 @@ from data.pipelines import (tokenize_pipe,
                             encode_pipe,
                             window_pipe)
 
+import numpy as np
 
 class windowedDNN(BaseEstimator, ClassifierMixin):
     def __init__(self, window=5, layers=[50, 25], word_dim=50):
@@ -34,9 +35,9 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
         print("Building NN")
         model = Sequential()
         firstlayer = self.layers[0]
+        model.add(Flatten(input_shape=(self.window, self.word_dim)))
         model.add(Dense(
             firstlayer,
-            input_dim=self.window * self.word_dim,
             activation='relu'))
 
         for l in self.layers[1:]:
@@ -49,6 +50,8 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
             metrics=['accuracy'])
 
         self.model = model
+
+        model.summary()
 
         p1 = lower_pipe(sentences)
         p2 = tokenize_pipe(p1)
@@ -67,15 +70,19 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
 
         enc = encode_pipe(clean_sens, self.w2v)
         self.enc = enc
-        print("encoding", enc, "encoding")
-
         windows = list(window_pipe(enc, labels, self.window))
 
         win_sens = [w[0] for w in windows]
         win_labs = [w[1] for w in windows]
 
-        print(win_sens)
-        print(win_labs)
+        y_inp = to_categorical(win_labs)
+
+        print("Training NN")
+        model.fit(
+            np.array(win_sens),
+            np.array(y_inp),
+            epochs=150,
+            batch_size=50)
 
     def predict(self, X):
         return [self._pred_sen(s) for s in X]
@@ -85,4 +92,8 @@ cl = []
 if __name__ == '__main__':
     tr, te = import_data()
     cl = windowedDNN()
-    cl.fit([tr.text[0]], [tr.author[0]])
+    author_enum = {'HPL': 0, 'EAP': 1, 'MWS': 2}
+
+    classed_auths = [author_enum[a] for a in tr.author]
+
+    cl.fit(tr.text, classed_auths)
