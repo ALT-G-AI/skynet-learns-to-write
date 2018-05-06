@@ -17,18 +17,21 @@ from data.pipelines import (tokenize_pipe,
                             lemmatize_pipe,
                             uncommon_pipe,
                             encode_pipe,
-                            window_pipe)
+                            window_pipe,
+                            window_pipe_nolabel,
+                            cull_words_pipe)
 
 import numpy as np
 
 class windowedDNN(BaseEstimator, ClassifierMixin):
-    def __init__(self, window=5, layers=[50, 25], word_dim=50):
+    def __init__(self, window=5, layers=[50, 25], word_dim=50, epochs=250):
         """
         Called when initializing the classifier
         """
         self.window = window
         self.layers = layers
         self.word_dim = word_dim
+        self.epochs = epochs
 
     def fit(self, sentences, labels):
 
@@ -81,19 +84,51 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
         model.fit(
             np.array(win_sens),
             np.array(y_inp),
-            epochs=150,
+            epochs=self.epochs,
             batch_size=50)
+
+    def _pred_sen(self, s):
+        s_array = [s]
+        p1 = lower_pipe(s_array)
+        p2 = tokenize_pipe(p1)
+        p3 = stem_pipe(p2)
+        p4 = lemmatize_pipe(p3)
+        p5 = cull_words_pipe(p4, self.w2v.wv.vocab)
+        p6 = encode_pipe(p5, self.w2v)
+        windows = np.array(list(window_pipe_nolabel(p6, self.window)))
+
+        preds = self.model.predict(windows, batch_size=len(windows))
+
+        logs = np.log(preds)
+        flat = np.sum(logs, 0)
+
+        winner_index = np.argmax(flat)
+        return winner_index
 
     def predict(self, X):
         return [self._pred_sen(s) for s in X]
 
-cl = []
 
 if __name__ == '__main__':
     tr, te = import_data()
-    cl = windowedDNN()
     author_enum = {'HPL': 0, 'EAP': 1, 'MWS': 2}
 
     classed_auths = [author_enum[a] for a in tr.author]
 
-    cl.fit(tr.text, classed_auths)
+    myc = windowedDNN()
+
+    y_train_pred = cross_val_predict(
+        myc,
+        tr.text,
+        classed_auths,
+        cv=3,
+        n_jobs=-1)
+
+    CM = confusion_matrix(
+        classed_auths,
+        y_train_pred)
+
+    # Get prob dists across rows
+    prob_CM = CM / CM.sum(axis=1, keepdims=True)
+
+    print(prob_CM)

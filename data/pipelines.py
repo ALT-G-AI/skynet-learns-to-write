@@ -52,6 +52,16 @@ def uncommon_pipe(prior, thresh=1):
         yield [repl(w) for w in s]
 
 
+def cull_words_pipe(prior, whitelist):
+    def fix(w):
+        if w in whitelist:
+            return w
+        else:
+            return '!#RARE'
+    for s in prior:
+        yield [fix(w) for w in s]
+
+
 def encode_pipe(prior, encoder):
     for s in prior:
         yield [encoder[w] for w in s]
@@ -65,6 +75,16 @@ def window_pipe(prior, labels, window):
         else:
             for i in range(len(s) + 1 - window):
                 yield s[i:i + window], l
+
+
+def window_pipe_nolabel(prior, window):
+    for s in prior:
+        if len(s) < window:
+            padlen = window - len(s)
+            yield s + [s[-1]] * padlen
+        else:
+            for i in range(len(s) + 1 - window):
+                yield s[i:i + window]
 
 
 if __name__ == '__main__':
