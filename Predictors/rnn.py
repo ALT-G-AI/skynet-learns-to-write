@@ -1,5 +1,6 @@
 from math import floor
 
+import sys
 import numpy as np
 import tensorflow as tf
 import datetime
@@ -17,7 +18,8 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
     """
 
     def __init__(self, cell_type=tf.contrib.rnn.GRUCell, n_neurons=30, learning_rate=0.001, n_outputs=1,
-                 n_out_neurons=3, n_inputs=50, n_steps=50, n_epochs=20, batch_size=200, **cell_args):
+                 n_out_neurons=3, n_inputs=50, n_steps=50, n_epochs=20, batch_size=200, dropout_rate=0.0,
+                 he_init=False, **cell_args):
         """
         cell_type = The class used to instantiate the cell. This allows us to choose between LSTM, GRU and BasicRNN
         n_neurons = The number of neurons in the cell_type instance
@@ -28,6 +30,8 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
         n_steps = amount of recursion e.g. window size
         n_epochs = the number of epochs to train for
         batch_size = the number of training examples used in each batch during training
+        dropout_rate = proportion of dropout: 0 being none and 1 being all
+        he_init = do we use He Initialisation
         """
         self.cell_type = cell_type
         self.n_neurons = n_neurons
@@ -39,6 +43,9 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
         self.n_epochs = n_epochs
         self.batch_size = batch_size
         self.cell_args = cell_args
+        self.dropout = (dropout_rate != 0)
+        self.dropout_rate = dropout_rate
+        self.he_init = he_init
 
         # each RNNClassifier needs its own graph so that creating one after another for grid search doesn't
         # create naming conflicts in the tensorflow graph. Sessions are subordinate to graphs so recreating
@@ -57,12 +64,28 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
             self.X = tf.placeholder(tf.float32, [None, self.n_steps, self.n_inputs])
             self.y = tf.placeholder(tf.int64, [None])
 
-            cell = self.cell_type(num_units=self.n_neurons, **self.cell_args)
+            if self.he_init:
+                he_init = tf.contrib.layers.variance_scaling_initializer()
+                basic_cell = self.cell_type(num_units=self.n_neurons, kernel_initializer=he_init, **self.cell_args)
+            else:
+                basic_cell = self.cell_type(num_units=self.n_neurons, **self.cell_args)
+
+            if self.dropout:
+                cell = tf.contrib.rnn.DropoutWrapper(basic_cell, input_keep_prob = 1.0 - self.dropout_rate,
+                                                     output_keep_prob= 1.0 - self.dropout_rate)
+            else:
+                cell = basic_cell
+
             outputs, states = tf.nn.dynamic_rnn(cell, self.X, dtype=tf.float32)
 
-            out_layer = tf.layers.dense(states, self.n_out_neurons)
+            if self.he_init:
+                out_layer = tf.layers.dense(states, self.n_out_neurons, kernel_initializer=he_init)
+            else:
+                out_layer = tf.layers.dense(states, self.n_out_neurons)
+
             xentropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.y, logits=out_layer)
             loss = tf.reduce_mean(xentropy)
+
             optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
 
             self.probs = tf.nn.softmax(out_layer)
@@ -119,6 +142,7 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
                     print(
                         "{}/{}:\t\tTrain accuracy:\t{:.3f}\tTest accuracy:\t{:.3f}".format(epoch+1, self.n_epochs, acc_train,
                                                                                         acc_test))
+                    sys.stdout.flush()
 
                 except KeyboardInterrupt:  # stop early with Control+C (SIGINT)
                     print("\nInterrupted by user at epoch {}/{}".format(epoch, self.n_epochs))
@@ -200,7 +224,7 @@ if __name__ == '__main__':
         X_train, y_train = zip(*data_enc.fit_transform(tr.text, y_train))
         X_test, y_test = zip(*data_enc.transform(te.text, y_test))
 
-    PARAM_SEARCH = False
+    PARAM_SEARCH = True
     if PARAM_SEARCH:
         print("Parameter grid search. This will take over and hour")
         # I was unable to get the sklearn parameter search working.
@@ -208,14 +232,18 @@ if __name__ == '__main__':
         # this is a crude grid search
 
         # params we are using every time
-        always_params = {'n_steps': 50, 'n_out_neurons': 3, 'n_outputs': 1, 'n_epochs': 50}
+        always_params = {'n_steps': 50, 'n_out_neurons': 3, 'n_outputs': 1, 'n_epochs': 200}
 
         # params we are changing
-        n_neurons_grid = range(10, 201, 10)
+        n_neurons_grid = range(20, 200, 10)
         cell_types_grid = (tf.contrib.rnn.GRUCell, tf.contrib.rnn.LSTMCell)
+        dropout_rate_grid = (0.0, 0.1, 0.2, 0.3, 0.4)
+        learning_rate_grid = (0.0001, 0.001, 0.01)
+        he_init_grid = (False,)
 
-        search = [{**always_params.copy(), 'n_neurons': nn, 'cell_type': ct} for nn in n_neurons_grid
-                for ct in cell_types_grid]
+        search = [{**always_params.copy(), 'n_neurons': nn, 'cell_type': ct, 'dropout_rate': dr, 'learning_rate': lr,
+                   'he_init': he} for nn in n_neurons_grid for ct in cell_types_grid for dr in dropout_rate_grid
+                  for lr in learning_rate_grid for he in he_init_grid]
 
         results = []
 
@@ -224,10 +252,13 @@ if __name__ == '__main__':
             if params['cell_type'] == tf.contrib.rnn.LSTMCell:
                 params['state_is_tuple'] = False
 
-            print("\nTesting params {}".format(params))
             rnn = RNNClassifier(**params)
             rnn.fit(X_train, y_train)
             y_test_pred = rnn.predict(X_test)
+            print("\nTesting params {}".format(params))
+            show_stats(y_test, y_test_pred)
+            print('\n')
+            sys.stdout.flush()
 
             results.append((accuracy_score(y_test, y_test_pred), params))
 
@@ -249,9 +280,10 @@ if __name__ == '__main__':
         #                    state_is_tuple=False) # TODO state_is_tuple is deprecated
         # rnn = RNNClassifier(cell_type = tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=200, n_neurons=200)
 
-        # For using PaddedSentenceTransformer. 69% accuracy on the test set but 100% from early epochs on the training set
-        rnn = RNNClassifier(n_steps=50, cell_type=tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=200,
-                            n_neurons=200)
+        # For using PaddedSentenceTransformer. 73% accuracy on the test set 
+        rnn_params = {'n_steps': 50, 'cell_type': tf.contrib.rnn.GRUCell, 'n_out_neurons': 3, 'n_outputs': 1,
+                      'n_epochs': 100, 'n_neurons': 60, 'dropout_rate': 0.25, 'he_init': True}
+        rnn = RNNClassifier(**rnn_params)
 
         rnn.fit(X_train, y_train)
 
@@ -267,9 +299,9 @@ if __name__ == '__main__':
 
         with tf.Session() as sess:
             with sess.as_default():
-                rnn_restored = RNNClassifier(n_steps=50, cell_type=tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=200,
-                                    n_neurons=200)
+                rnn_restored = RNNClassifier(**rnn_params)
                 rnn_restored.restore(PATH)
                 y_test_pred = rnn_restored.predict(X_test)
 
         show_stats(y_test, y_test_pred) # observe that these stats are the same as for the original rnn
+
