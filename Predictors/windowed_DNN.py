@@ -24,7 +24,13 @@ from data.pipelines import (tokenize_pipe,
 import numpy as np
 
 class windowedDNN(BaseEstimator, ClassifierMixin):
-    def __init__(self, window=5, layers=[50, 25], word_dim=50, epochs=250):
+    def __init__(
+        self,
+        window=5,
+        layers=[50, 25],
+        word_dim=50,
+        epochs=250,
+        batch=100):
         """
         Called when initializing the classifier
         """
@@ -32,6 +38,7 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
         self.layers = layers
         self.word_dim = word_dim
         self.epochs = epochs
+        self.batch = batch
 
     def fit(self, sentences, labels):
 
@@ -85,7 +92,7 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
             np.array(win_sens),
             np.array(y_inp),
             epochs=self.epochs,
-            batch_size=50)
+            batch_size=self.batch)
 
     def _pred_sen(self, s):
         s_array = [s]
@@ -115,7 +122,7 @@ if __name__ == '__main__':
 
     classed_auths = [author_enum[a] for a in tr.author]
 
-    myc = windowedDNN()
+    myc = windowedDNN(epochs = 250, layers=[200], window=8)
 
     y_train_pred = cross_val_predict(
         myc,
