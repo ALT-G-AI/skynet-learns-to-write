@@ -1,8 +1,7 @@
 import matplotlib.pyplot as plt
-# This import is used even though PyCharm thinks it is not
-# In case deleted it is this import "from mpl_toolkits.mplot3d import Axes3D"
+import numpy as np
+# noinspection PyUnresolvedReferences
 from mpl_toolkits.mplot3d import Axes3D
-from numpy import array
 from sklearn.decomposition import KernelPCA
 from sklearn.feature_extraction.text import CountVectorizer
 
@@ -12,7 +11,7 @@ train, ts = import_data()
 
 # Storing the entire training text in a list
 text = list(train.text.values)
-authors = array(list(train.author.values))
+authors = np.array(list(train.author.values))
 
 tf_vectorizer = CountVectorizer(max_df=0.95,
                                 min_df=2,
