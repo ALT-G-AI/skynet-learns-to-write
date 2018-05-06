@@ -8,7 +8,7 @@ from sklearn.metrics import confusion_matrix
 
 from keras.models import Sequential
 from keras.layers import Dense, Flatten
-from keras.utils import  to_categorical
+from keras.utils import to_categorical
 from gensim.models import Word2Vec
 
 from data.pipelines import (tokenize_pipe,
@@ -122,7 +122,7 @@ if __name__ == '__main__':
 
     classed_auths = [author_enum[a] for a in tr.author]
 
-    myc = windowedDNN(epochs = 250, layers=[200], window=8)
+    myc = windowedDNN(epochs=250, layers=[200], window=8)
 
     y_train_pred = cross_val_predict(
         myc,
