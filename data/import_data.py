@@ -7,7 +7,7 @@ from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 from sklearn.model_selection import train_test_split
 
-TRAINING_PATH = './data/train.csv'
+TRAINING_PATH = '../data/train.csv'
 
 
 def import_data(training_path=TRAINING_PATH):
