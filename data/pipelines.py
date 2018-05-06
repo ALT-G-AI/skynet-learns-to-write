@@ -52,15 +52,32 @@ def uncommon_pipe(prior, thresh=1):
         yield [repl(w) for w in s]
 
 
+def encode_pipe(prior, encoder):
+    for s in prior:
+        yield [encoder[w] for w in s]
+
+
+def window_pipe(prior, labels, window):
+    for s, l in zip(prior, labels):
+        if len(s) < window:
+            padlen = window - len(s)
+            yield s + [s[-1]] * padlen, l
+        else:
+            for i in range(len(s) + 1 - window):
+                yield s[i:i + window], l
+
+
+
 if __name__ == '__main__':
     tr, te = import_data()
 
-    sens = tr.text
+    sens = tr.text[:2]
+    labs = tr.author[:2]
 
     p1 = lower_pipe(sens)
     p2 = tokenize_pipe(p1)
     p3 = stem_pipe(p2)
     p4 = lemmatize_pipe(p3)
-    p5 = uncommon_pipe(p4, 1)
+    p5 = window_pipe(p4, labs, 5)
     for i in p5:
         print(i)

@@ -1,0 +1,88 @@
+from collections import Counter
+from numpy import log
+from sklearn.base import BaseEstimator, ClassifierMixin
+from data.import_data import tokenize, import_data
+
+from sklearn.model_selection import cross_val_predict
+from sklearn.metrics import confusion_matrix
+
+from keras.models import Sequential
+from keras.layers import Dense
+
+from gensim.models import Word2Vec
+
+from data.pipelines import (tokenize_pipe,
+                            lower_pipe,
+                            stem_pipe,
+                            lemmatize_pipe,
+                            uncommon_pipe,
+                            encode_pipe,
+                            window_pipe)
+
+
+class windowedDNN(BaseEstimator, ClassifierMixin):
+    def __init__(self, window=5, layers=[50, 25], word_dim=50):
+        """
+        Called when initializing the classifier
+        """
+        self.window = window
+        self.layers = layers
+        self.word_dim = word_dim
+
+    def fit(self, sentences, labels):
+
+        print("Building NN")
+        model = Sequential()
+        firstlayer = self.layers[0]
+        model.add(Dense(
+            firstlayer,
+            input_dim=self.window * self.word_dim,
+            activation='relu'))
+
+        for l in self.layers[1:]:
+            model.add(Dense(l, activation='relu'))
+
+        model.add(Dense(3, activation='sigmoid'))
+        model.compile(
+            loss='binary_crossentropy',
+            optimizer='adam',
+            metrics=['accuracy'])
+
+        self.model = model
+
+        p1 = lower_pipe(sentences)
+        p2 = tokenize_pipe(p1)
+        p3 = stem_pipe(p2)
+        p4 = lemmatize_pipe(p3)
+        p5 = uncommon_pipe(p4)
+
+        clean_sens = list(p5)
+        self.clean_sens = clean_sens
+
+        print("Building word embedding")
+        self.w2v = Word2Vec(
+            clean_sens,
+            size=self.word_dim,
+            min_count=0)
+
+        enc = encode_pipe(clean_sens, self.w2v)
+        self.enc = enc
+        print("encoding", enc, "encoding")
+
+        windows = list(window_pipe(enc, labels, self.window))
+
+        win_sens = [w[0] for w in windows]
+        win_labs = [w[1] for w in windows]
+
+        print(win_sens)
+        print(win_labs)
+
+    def predict(self, X):
+        return [self._pred_sen(s) for s in X]
+
+cl = []
+
+if __name__ == '__main__':
+    tr, te = import_data()
+    cl = windowedDNN()
+    cl.fit([tr.text[0]], [tr.author[0]])
