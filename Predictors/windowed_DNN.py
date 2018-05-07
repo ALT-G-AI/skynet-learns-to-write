@@ -11,6 +11,8 @@ from keras.layers import Dense, Flatten
 from keras.utils import to_categorical
 from gensim.models import Word2Vec
 
+from data.glove.pre_encoder import pte
+
 from data.pipelines import (tokenize_pipe,
                             lower_pipe,
                             stem_pipe,
@@ -32,7 +34,8 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
         word_dim=50,
         epochs=250,
         batch=100,
-        verbose=True):
+        verbose=True,
+        pte=False):
         """
         Called when initializing the classifier
         """
@@ -42,6 +45,7 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
         self.epochs = epochs
         self.batch = batch
         self.verbose = verbose
+        self.pte = pte
 
     def fit(self, sentences, labels):
 
@@ -79,12 +83,17 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
 
         if self.verbose:
             print("Building word embedding")
-        self.w2v = Word2Vec(
-            clean_sens,
-            size=self.word_dim,
-            min_count=0)
 
-        enc = encode_pipe(clean_sens, self.w2v)
+        self.encoder = None
+        if self.pte:
+            self.encoder = pte()
+        else:
+            self.encoder = Word2Vec(
+                clean_sens,
+                size=self.word_dim,
+                min_count=0)
+
+        enc = encode_pipe(clean_sens, self.encoder)
         self.enc = enc
         windows = list(window_pipe(enc, labels, self.window))
 
@@ -109,8 +118,10 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
         p2 = tokenize_pipe(p1)
         p3 = stem_pipe(p2)
         p4 = lemmatize_pipe(p3)
-        p5 = cull_words_pipe(p4, self.w2v.wv.vocab)
-        p6 = encode_pipe(p5, self.w2v)
+        p5 = p4
+        if not self.pte:
+            p5 = cull_words_pipe(p4, self.encoder.wv.vocab)
+        p6 = encode_pipe(p5, self.encoder)
         windows = np.array(list(window_pipe_nolabel(p6, self.window)))
 
         preds = self.model.predict(windows, batch_size=len(windows))
@@ -131,7 +142,7 @@ if __name__ == '__main__':
 
     classed_auths = [author_enum[a] for a in tr.author]
 
-    myc = windowedDNN(epochs=250, layers=[200], window=8)
+    myc = windowedDNN(epochs=150, layers=[125], window=5, pte=True)
 
     y_train_pred = cross_val_predict(
         myc,
