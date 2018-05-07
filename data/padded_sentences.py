@@ -80,6 +80,7 @@ class PaddedSentenceTransformer(BaseEstimator, TransformerMixin):
         padded_sentences = self.process_data_(X)
         return self.transform_(padded_sentences)
 
+
 if __name__ == '__main__':
     tr, te = import_data()
 

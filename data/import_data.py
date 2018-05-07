@@ -6,6 +6,9 @@ from gensim.models.word2vec import Word2Vec
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 from sklearn.model_selection import train_test_split
+from nltk.corpus import stopwords
+from nltk.stem.wordnet import WordNetLemmatizer
+import string
 
 TRAINING_PATH = 'data/train.csv'
 
@@ -80,3 +83,21 @@ def create_batched_ds(encoder, window, sens, labs):
         ({'windows': ext_encoded}, ext_authors))
 
     return dataset_full, author_key
+
+
+STOPWORDS = set(stopwords.words('english'))
+EXCLUDE = set(string.punctuation)
+LEMMA = WordNetLemmatizer()
+
+
+def clean(doc):
+    """
+        Cleans documents in preparation for topic learning
+        - Removes stop words
+        - Removes punctuation
+        - Lemmatizes (groups similar words)
+    """
+    stop_free = " ".join([i for i in doc.lower().split() if i not in STOPWORDS])
+    punc_free = ''.join(ch for ch in stop_free if ch not in EXCLUDE)
+    normalized = " ".join(LEMMA.lemmatize(word) for word in punc_free.split())
+    return normalized
