@@ -159,7 +159,7 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
 
         means = np.mean(wordprobs, 1)
         devs = np.std(wordprobs, 1)
-        miss = np.sum(wordhits, 1)
+        miss = np.sum(wordhits, 1) / len(s)
         maxs = np.max(wordprobs, 1)
         mins = np.min(wordprobs, 1)
         senlen = np.array([len(s)])
@@ -204,7 +204,12 @@ if __name__ == '__main__':
 
     classed_auths = [author_enum[a] for a in tr.author]
 
-    myc = ProbabilisticNNClassifier(epochs=200, layers=[], beta_method=True)
+    myc = ProbabilisticNNClassifier(
+        epochs=5000,
+        layers=[],
+        beta_method=True,
+        beta_stem=True,
+        beta_lemma=True)
 
     y_train_pred = cross_val_predict(
         myc,
@@ -217,7 +222,7 @@ if __name__ == '__main__':
         classed_auths,
         y_train_pred)
 
-    #Get prob dists across rows
+    # Get prob dists across rows
     prob_CM = CM / CM.sum(axis=1, keepdims=True)
 
     print(prob_CM)

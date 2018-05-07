@@ -38,7 +38,8 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
             pte=False,
             stem=True,
             lemma=True,
-            uncommon=True):
+            uncommon=True,
+            index_out=True):
         """
         Called when initializing the classifier
         """
@@ -52,6 +53,7 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
         self.stem = stem
         self.lemma = lemma
         self.uncommon = uncommon
+        self.index_out = index_out
 
     def pipeline_factory(self, sens):
         p = lower_pipe(sens)
@@ -69,13 +71,10 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
         if self.verbose:
             print("Building NN")
         model = Sequential()
-        firstlayer = self.layers[0]
-        model.add(Flatten(input_shape=(self.window, self.word_dim)))
-        model.add(Dense(
-            firstlayer,
-            activation='relu'))
 
-        for l in self.layers[1:]:
+        model.add(Flatten(input_shape=(self.window, self.word_dim)))
+
+        for l in self.layers:
             model.add(Dense(l, activation='relu'))
 
         model.add(Dense(3, activation='sigmoid'))
@@ -140,8 +139,11 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
         logs = np.log(preds)
         flat = np.sum(logs, 0)
 
-        winner_index = np.argmax(flat)
-        return winner_index
+        if self.index_out:
+            winner_index = np.argmax(flat)
+            return winner_index
+        else:
+            return flat
 
     def predict(self, X):
         return [self._pred_sen(s) for s in X]
@@ -153,7 +155,7 @@ if __name__ == '__main__':
 
     classed_auths = [author_enum[a] for a in tr.author]
 
-    myc = windowedDNN(epochs=150, layers=[125], window=5, pte=True)
+    myc = windowedDNN(epochs=200, layers=[], window=5, pte=True)
 
     y_train_pred = cross_val_predict(
         myc,
