@@ -17,10 +17,23 @@ def lower_pipe(prior):
 
 
 def strip_stopwords_pipe(prior):
+    extra_stopwords = [
+        ',',
+        '.',
+        ';',
+        '``',
+        '\'',
+        '\'\'',
+        'would',
+        'could',
+        '\'s',
+        'one']
+
+    stops = [*stopwords.words('english'), *extra_stopwords]
     for s in prior:
         yield [
             w for w in s
-            if w not in stopwords.words('english')]
+            if w not in stops]
 
 
 def stem_pipe(prior):
