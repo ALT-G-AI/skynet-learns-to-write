@@ -28,14 +28,17 @@ import numpy as np
 
 class windowedDNN(BaseEstimator, ClassifierMixin):
     def __init__(
-        self,
-        window=5,
-        layers=[50, 25],
-        word_dim=50,
-        epochs=250,
-        batch=100,
-        verbose=True,
-        pte=False):
+            self,
+            window=5,
+            layers=[50, 25],
+            word_dim=50,
+            epochs=250,
+            batch=100,
+            verbose=True,
+            pte=False,
+            stem=True,
+            lemma=True,
+            uncommon=True):
         """
         Called when initializing the classifier
         """
@@ -46,6 +49,20 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
         self.batch = batch
         self.verbose = verbose
         self.pte = pte
+        self.stem = stem
+        self.lemma = lemma
+        self.uncommon = uncommon
+
+    def pipeline_factory(self, sens):
+        p = lower_pipe(sens)
+        p = tokenize_pipe(p)
+        if self.stem:
+            p = stem_pipe(p)
+        if self.lemma:
+            p = lemmatize_pipe(p)
+        if self.uncommon:
+            p = uncommon_pipe(p)
+        return p
 
     def fit(self, sentences, labels):
 
@@ -72,13 +89,9 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
         if self.verbose:
             model.summary()
 
-        p1 = lower_pipe(sentences)
-        p2 = tokenize_pipe(p1)
-        p3 = stem_pipe(p2)
-        p4 = lemmatize_pipe(p3)
-        p5 = uncommon_pipe(p4)
+        pipe_out = self.pipeline_factory(sentences)
 
-        clean_sens = list(p5)
+        clean_sens = list(pipe_out)
         self.clean_sens = clean_sens
 
         if self.verbose:
@@ -94,7 +107,6 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
                 min_count=0)
 
         enc = encode_pipe(clean_sens, self.encoder)
-        self.enc = enc
         windows = list(window_pipe(enc, labels, self.window))
 
         win_sens = [w[0] for w in windows]
@@ -114,15 +126,14 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
 
     def _pred_sen(self, s):
         s_array = [s]
-        p1 = lower_pipe(s_array)
-        p2 = tokenize_pipe(p1)
-        p3 = stem_pipe(p2)
-        p4 = lemmatize_pipe(p3)
-        p5 = p4
+
+        pipe_out = self.pipeline_factory(s_array)
+
         if not self.pte:
-            p5 = cull_words_pipe(p4, self.encoder.wv.vocab)
-        p6 = encode_pipe(p5, self.encoder)
-        windows = np.array(list(window_pipe_nolabel(p6, self.window)))
+            pipe_out = cull_words_pipe(pipe_out, self.encoder.wv.vocab)
+
+        pipe_out = encode_pipe(pipe_out, self.encoder)
+        windows = np.array(list(window_pipe_nolabel(pipe_out, self.window)))
 
         preds = self.model.predict(windows, batch_size=len(windows))
 
