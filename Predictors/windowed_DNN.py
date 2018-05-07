@@ -23,6 +23,7 @@ from data.pipelines import (tokenize_pipe,
 
 import numpy as np
 
+
 class windowedDNN(BaseEstimator, ClassifierMixin):
     def __init__(
         self,
@@ -30,7 +31,8 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
         layers=[50, 25],
         word_dim=50,
         epochs=250,
-        batch=100):
+        batch=100,
+        verbose=True):
         """
         Called when initializing the classifier
         """
@@ -39,10 +41,12 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
         self.word_dim = word_dim
         self.epochs = epochs
         self.batch = batch
+        self.verbose = verbose
 
     def fit(self, sentences, labels):
 
-        print("Building NN")
+        if self.verbose:
+            print("Building NN")
         model = Sequential()
         firstlayer = self.layers[0]
         model.add(Flatten(input_shape=(self.window, self.word_dim)))
@@ -61,7 +65,8 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
 
         self.model = model
 
-        model.summary()
+        if self.verbose:
+            model.summary()
 
         p1 = lower_pipe(sentences)
         p2 = tokenize_pipe(p1)
@@ -72,7 +77,8 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
         clean_sens = list(p5)
         self.clean_sens = clean_sens
 
-        print("Building word embedding")
+        if self.verbose:
+            print("Building word embedding")
         self.w2v = Word2Vec(
             clean_sens,
             size=self.word_dim,
@@ -87,12 +93,15 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
 
         y_inp = to_categorical(win_labs)
 
-        print("Training NN")
+        if self.verbose:
+            print("Training NN")
+
         model.fit(
             np.array(win_sens),
             np.array(y_inp),
             epochs=self.epochs,
-            batch_size=self.batch)
+            batch_size=self.batch,
+            verbose=self.verbose)
 
     def _pred_sen(self, s):
         s_array = [s]
