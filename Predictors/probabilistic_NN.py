@@ -10,6 +10,7 @@ from keras.utils import to_categorical
 from sklearn.model_selection import cross_val_predict
 from sklearn.metrics import confusion_matrix
 
+from data.data_examination import make_sig_words
 from data.pipelines import (tokenize_pipe,
                             lower_pipe,
                             stem_pipe,
@@ -24,7 +25,10 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
             counterTable={},
             layers=[20],
             epochs=200,
-            batch=500):
+            batch=500,
+            beta_method=False,
+            beta_stem=False,
+            beta_lemma=False):
         """
         Called when initializing the classifier
         """
@@ -33,6 +37,18 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
         self.layers = layers
         self.epochs = epochs
         self.batch = batch
+        self.beta_method = beta_method
+        self.beta_stem = beta_stem
+        self.beta_lemma = beta_lemma
+
+    def pipeline_factory(self, sens):
+        p = lower_pipe(sens)
+        p = tokenize_pipe(p)
+        if self.beta_stem:
+            p = stem_pipe(p)
+        if self.beta_lemma:
+            p = lemmatize_pipe(p)
+        return p
 
     def fit(self, sentences, labels):
         print("Fitting")
@@ -42,24 +58,46 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
             self.counterTable[l] = Counter()
 
         print("Cleaning sentences")
-        p1 = lower_pipe(sentences)
-        p2 = tokenize_pipe(p1)
-        p3 = stem_pipe(p2)
-        p4 = lemmatize_pipe(p3)
-        p4 = list(p4)
-        sens = p4
-        #sens = list(strip_stopwords_pipe(p4))
+        sens = self.pipeline_factory(sentences)
 
         print("Building probability data")
-        for s, l in zip(sens, labels):
-            # Strip punctuation
-            for w in s:
-                self.counterTable[l][w] += 1
+        if not self.beta_method:
+            for s, l in zip(sens, labels):
+                # Strip punctuation
+                for w in s:
+                    self.counterTable[l][w] += 1
 
-        for l in distinct_labels:
-            ctr = self.counterTable[l]
-            tw = sum(ctr.values())
-            self.logTable[l] = {k: log(v / tw) for k, v in ctr.items()}
+            for l in distinct_labels:
+                ctr = self.counterTable[l]
+                tw = sum(ctr.values())
+                self.logTable[l] = {k: log(v / tw) for k, v in ctr.items()}
+
+        else:
+            if self.beta_method:
+                for l in distinct_labels:
+                    self.logTable[l] = {}
+
+                s_by_a = {a:
+                          [s for s, a1 in zip(sentences, labels) if a1 == a]
+                          for a in distinct_labels}
+
+                tok_s_by_a = {
+                    k:
+                    list(tokenize_pipe(lower_pipe(v))) for k, v in s_by_a.items()}
+                beta_table = make_sig_words(
+                    stem=self.beta_stem,
+                    lemma=self.beta_lemma,
+                    other_data=tok_s_by_a)
+
+                self.beta_table = beta_table
+
+                for l in beta_table:
+                    for w in beta_table[l]:
+                        self.logTable[l][w] = log(beta_table[l][w])
+
+                self.miss_p = {}
+                for l in distinct_labels:
+                    self.miss_p[l] = min(self.logTable[l].values())
 
         """ Feature list
             for each label -
@@ -132,7 +170,10 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
         if self.hit_(w, l):
             return self.logTable[l][w]
         else:
-            return 0
+            if self.beta_method:
+                return self.miss_p[l]
+            else:
+                return 0
 
     def hit_(self, w, l):
         return (w in self.logTable[l])
@@ -143,13 +184,7 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
         except AttributeError:
             raise RuntimeError('You must train the classifier before using it')
 
-        p1 = lower_pipe(X)
-        p2 = tokenize_pipe(p1)
-        p3 = stem_pipe(p2)
-        p4 = lemmatize_pipe(p3)
-        p4 = list(p4)
-        sens = p4
-        #sens = list(strip_stopwords_pipe(p4))
+        sens = self.pipeline_factory(X)
 
         features = np.array([self.get_features(s) for s in sens])
 
@@ -169,7 +204,7 @@ if __name__ == '__main__':
 
     classed_auths = [author_enum[a] for a in tr.author]
 
-    myc = ProbabilisticNNClassifier(epochs=5000, layers=[])
+    myc = ProbabilisticNNClassifier(epochs=200, layers=[], beta_method=True)
 
     y_train_pred = cross_val_predict(
         myc,

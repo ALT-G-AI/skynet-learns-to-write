@@ -12,7 +12,7 @@ from data.pipelines import (tokenize_pipe,
 from collections import Counter
 
 import matplotlib.pyplot as plt
-from numpy import sqrt
+from numpy import sqrt, prod
 
 
 tr, te = import_data()
@@ -75,28 +75,27 @@ def make_sig_words(stem=False, lemma=False, other_data=None):
     if other_data is None:
         words = tok_s_by_a
 
+    classes = words.keys()
+
     if stem:
         words = {k: list(stem_pipe(v)) for k, v in words.items()}
 
     if lemma:
         words = {k: list(lemmatize_pipe(v)) for k, v in words.items()}
 
-    res = {'HPL': {}, 'MWS': {}, 'EAP': {}}
+    res = {c: {} for c in classes}
 
-    hplbeta = wordbeta(words['HPL'])
-    mwsbeta = wordbeta(words['MWS'])
-    eapbeta = wordbeta(words['EAP'])
+    betas = {c: wordbeta(words[c]) for c in classes}
 
     vocab = set([w for X in words.values() for s in X for w in s])
 
     for w in vocab:
-        h = hplbeta[w]
-        m = mwsbeta[w]
-        e = eapbeta[w]
+        for cc in classes:
+            num = betas[cc][w]
+            denom = 1 - sqrt(
+                prod([1 - betas[c][w] for c in classes if c is not cc]))
 
-        res['HPL'][w] = h / (1 - sqrt((1 - m) * (1 - e)))
-        res['MWS'][w] = m / (1 - sqrt((1 - h) * (1 - e)))
-        res['EAP'][w] = e / (1 - sqrt((1 - h) * (1 - m)))
+            res[cc][w] = num / denom
 
     return res
 
