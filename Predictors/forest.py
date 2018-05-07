@@ -14,15 +14,17 @@ class ForestClassifier(SklearnClassifier):
 
 
 if __name__ == '__main__':
+    forest_size = 10
+
     # numbered authors
-    # test_sklearnclassifier(ForestClassifier, n_jobs=-1, n_estimators = 437) # 54% accuracy
+    test_sklearnclassifier(ForestClassifier, n_jobs=-1, n_estimators = forest_size) 
 
     # one-hot encoded authors
-    # test_sklearnclassifier(ForestClassifier, AuthorProc=LabelBinarizer, n_jobs=-1, n_estimators = 152) # 19% accuracy, 28% F1
+    test_sklearnclassifier(ForestClassifier, AuthorProc=LabelBinarizer, n_jobs=-1, n_estimators = forest_size) 
 
     # windowed, numbered authors
     test_sklearnclassifier(ForestClassifier, DataProc=WindowedSentenceTransformer,
-                           labels_enc_with_data=True, n_jobs=-1, n_estimators=437)  # 41% accuracy
+                           labels_enc_with_data=True, n_jobs=-1, n_estimators = forest_size)
 
     param_dist = {
         'n_estimators': expon(scale=500),
@@ -35,5 +37,5 @@ if __name__ == '__main__':
     # random_search_params(ForestClassifier, param_dist, AuthorProc=LabelBinarizer)
 
     # windowed, numbered authors
-    random_search_params(ForestClassifier, param_dist, DataProc=WindowedSentenceTransformer,
-                         labels_enc_with_data=True)
+    #random_search_params(ForestClassifier, param_dist, DataProc=WindowedSentenceTransformer,
+    #                     labels_enc_with_data=True)

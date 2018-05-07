@@ -9,6 +9,8 @@ from data.import_data import import_data
 from data.numbered_authors import NumberAuthorsTransformer
 from data.padded_sentences import PaddedSentenceTransformer
 
+from data.glove.pre_encoder import pte
+
 
 # doens't really do much. See data.{padded_sentences, named_authors} for
 # data processing
@@ -63,7 +65,7 @@ def get_data_(train_limit, AuthorProc, DataProc, labels_enc_with_data, encoder_s
     author = list(tr.author) + list(te.author)
 
     label_enc = AuthorProc()
-    data_enc = DataProc(encoder_size=encoder_size)
+    data_enc = DataProc(encoder_class = pte)
 
     if train_limit == None:
         train_limit = len(text)

@@ -7,7 +7,8 @@ import numpy as np
 
 class PaddedSentenceTransformer(BaseEstimator, TransformerMixin):
 
-    def __init__(self, sentence_length=50, encoder_size=100, padding_token='\0', unknown_token='$unknown$'):
+    def __init__(self, sentence_length=50, encoder_size=100, padding_token='\0', unknown_token='$unknown$',
+                 encoder_class=Word2Vec):
         """
         sentence_length is in tokens
         """
@@ -15,6 +16,7 @@ class PaddedSentenceTransformer(BaseEstimator, TransformerMixin):
         self.encoder_size = encoder_size
         self.padding_token = padding_token
         self.unknown_token = unknown_token
+        self.encoder_class = encoder_class
 
     def pad_sentence_(self, sentence):
         """
@@ -53,13 +55,16 @@ class PaddedSentenceTransformer(BaseEstimator, TransformerMixin):
         return [self.pad_sentence_(s) for s in tokenized_sentences]
 
     def fit_(self, padded_sentences):
-        self.encoder = Word2Vec(
-            # make sure the unknown token ends up in our vocabulary
-            padded_sentences + [[self.unknown_token]],
-            workers=8,
-            min_count=0,
-            max_vocab_size=None,
-            size=self.encoder_size)
+        if self.encoder_class is Word2Vec:
+            self.encoder = Word2Vec(
+                # make sure the unknown token ends up in our vocabulary
+                padded_sentences + [[self.unknown_token]],
+                workers=8,
+                min_count=0,
+                max_vocab_size=None,
+                size=self.encoder_size)
+        else:
+            self.encoder = self.encoder_class()
 
     def fit(self, X, y=None):
         padded_sentences = self.process_data_(X)
