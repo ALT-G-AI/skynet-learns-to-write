@@ -33,13 +33,13 @@ if __name__ == '__main__':
         50]
 
     for wd in word_dim:
-        logprint("Windows:", 5, "| Encoding:", wd, "| Layers:", [40])
+        logprint("Windows:", 5, "| Encoding:", wd, "| Layers:", [50])
         myc = windowedDNN(
             word_dim=wd,
             layers=[40],
             window=5,
             verbose=False,
-            epochs=150,
+            epochs=250,
             index_out=False)
 
         y_train_pred = cross_val_predict(
@@ -80,7 +80,7 @@ if __name__ == '__main__':
                     window=w,
                     pte=p,
                     verbose=False,
-                    epochs=150,
+                    epochs=250,
                     index_out=False)
 
                 y_train_pred = cross_val_predict(
