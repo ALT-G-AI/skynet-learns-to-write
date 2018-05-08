@@ -61,8 +61,6 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
             p = stem_pipe(p)
         if self.lemma:
             p = lemmatize_pipe(p)
-        if not self.pte:
-            p = uncommon_pipe(p)
         return p
 
     def fit(self, sentences, labels):
@@ -88,6 +86,9 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
             model.summary()
 
         pipe_out = self.pipeline_factory(sentences)
+
+        if not self.pte:
+            pipe_out = uncommon_pipe(pipe_out)
 
         clean_sens = list(pipe_out)
         self.clean_sens = clean_sens
@@ -159,10 +160,10 @@ if __name__ == '__main__':
 
     myc = windowedDNN(
         layers=[100],
-        window=5,
+        window=8,
         pte=False,
         verbose=True,
-        epochs=250,
+        epochs=150,
         index_out=False)
 
     y_train_pred = cross_val_predict(
