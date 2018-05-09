@@ -151,4 +151,10 @@ if __name__ == '__main__':
         sepd = [inner for ar in sepd for inner in ar]
         print(a, "Mean | ", mean(sepd), "\t", "Dev |", std(sepd))
 
+    hplwords = wordcounts(stem_pipe(lemmatize_pipe(tok_s_by_a['HPL'])))
+    mwswords = wordcounts(stem_pipe(lemmatize_pipe(tok_s_by_a['MWS'])))
+    eapwords = wordcounts(stem_pipe(lemmatize_pipe(tok_s_by_a['EAP'])))
+
+    print([w for w in hplwords.keys() if w not in mwswords and w not in eapwords and hplwords[w] == 1])
+
     plt.show()

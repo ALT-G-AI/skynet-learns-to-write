@@ -2,7 +2,7 @@ from collections import Counter
 
 from numpy import log
 from sklearn.base import BaseEstimator, ClassifierMixin
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.model_selection import cross_val_predict
 
 from data.import_data import import_data
@@ -22,6 +22,7 @@ class MarkovClassifier(BaseEstimator, ClassifierMixin):
         """
         self.stem = stem
         self.lemma = lemma
+        self.count = 0
 
     def pipeline_factory(self, sens):
         p = lower_pipe(sens)
@@ -58,6 +59,10 @@ class MarkovClassifier(BaseEstimator, ClassifierMixin):
         self.trained_ = True
 
     def _sen_prob(self, s, l):
+        if self.count % 50 == 0:
+                print("Count:", self.count)
+        self.count += 1
+
         tokens = list(self.pipeline_factory([s]))[0]
         pairings = zip(tokens, tokens[1:])
 
@@ -99,16 +104,16 @@ class MarkovClassifier(BaseEstimator, ClassifierMixin):
         probs = [self._sen_prob(s, l) for l in o_labels]
 
         # Get minimum missed words
-        minw = min([p[1] for p in probs])
+        minw = min([p[2] for p in probs])
 
         # Get all labels with min missed words
-        winners_w = [p for p in probs if p[1] == minw]
+        winners_w = [p for p in probs if p[2] == minw]
 
         # Of those, get minimum missed transitions
-        mint = min([p[2] for p in winners_w])
+        mint = min([p[1] for p in winners_w])
 
         # Get all labels with min missed transitions
-        winners_t = [p for p in winners_w if p[2] == mint]
+        winners_t = [p for p in winners_w if p[1] == mint]
 
         # Get the highest prob label
         winner = max(winners_t, key=lambda x: x[0])
@@ -142,4 +147,6 @@ if __name__ == '__main__':
     # Get prob dists across rows
     prob_CM = CM / CM.sum(axis=1, keepdims=True)
 
+    print("Acc:", accuracy_score(tr.author, y_train_pred))
+    print(CM)
     print(prob_CM)

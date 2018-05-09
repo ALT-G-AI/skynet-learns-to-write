@@ -17,7 +17,9 @@ class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
             counter_table=None,
             beta_method=False,
             stem=False,
-            lemma=False):
+            lemma=False,
+            index_out=True,
+            labels=None):
         """
         Called when initializing the classifier
         """
@@ -30,21 +32,29 @@ class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
         self.beta_method = beta_method
         self.stem = stem
         self.lemma = lemma
+        self.labels = labels
+        if not index_out:
+            if beta_method:
+                self.index_out = False
+            else:
+                print("Must have index_out if beta_method isn't being used")
+        else:
+            self.index_out = True
 
     def fit(self, sentences, labels):
-        distinct_labels = set(labels)
+        if self.labels is None:
+            self.labels = list(set(labels))
 
         if self.beta_method:
-            for l in distinct_labels:
+            for l in self.labels:
                 self.logTable[l] = {}
 
             s_by_a = {a:
-                          [s for s, a1 in zip(sentences, labels) if a1 == a]
-                      for a in distinct_labels}
+                      [s for s, a1 in zip(sentences, labels) if a1 == a]
+                      for a in self.labels}
 
             tok_s_by_a = {
-                k:
-                    list(tokenize_pipe(lower_pipe(v))) for k, v in s_by_a.items()}
+                k: list(tokenize_pipe(lower_pipe(v))) for k, v in s_by_a.items()}
             beta_table = make_sig_words(
                 stem=self.stem,
                 lemma=self.lemma,
@@ -57,13 +67,13 @@ class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
                     self.logTable[l][w] = log(beta_table[l][w])
 
             self.miss_p = {}
-            for l in distinct_labels:
+            for l in self.labels:
                 self.miss_p[l] = min(self.logTable[l].values())
 
             self.trained_ = True
             return
 
-        for l in distinct_labels:
+        for l in self.labels:
             self.counterTable[l] = Counter()
 
         piped = lower_pipe(sentences)
@@ -77,7 +87,7 @@ class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
             for w in s:
                 self.counterTable[l][w] += 1
 
-        for l in distinct_labels:
+        for l in self.labels:
             ctr = self.counterTable[l]
             tw = sum(ctr.values())
             self.logTable[l] = {k: log(v / tw) for k, v in ctr.items()}
@@ -116,18 +126,20 @@ class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
         words = s
         scores = [
             sum([self.score_(w, l) for w in words])
-            for l in self.logTable.keys()]
+            for l in self.labels]
         hits = [
             sum([self.hit_(w, l) for w in words])
-            for l in self.logTable.keys()]
+            for l in self.labels]
 
         if self.beta_method:
-            maxin = scores.index(max(scores))
-            return list(self.logTable.keys())[maxin]
-
+            if self.index_out:
+                maxin = scores.index(max(scores))
+                return list(self.labels)[maxin]
+            else:
+                return scores
         maxhits = max(hits)
 
-        merged = zip(scores, hits, self.logTable.keys())
+        merged = zip(scores, hits, self.labels)
 
         maxes = [(s, l) for s, h, l in merged if h is maxhits]
         return max(maxes, key=lambda x: x[0])[1]
