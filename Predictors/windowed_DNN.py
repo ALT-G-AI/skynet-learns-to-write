@@ -28,14 +28,14 @@ import numpy as np
 
 class windowedDNN(BaseEstimator, ClassifierMixin):
     def __init__(
-        self,
-        window=5,
-        layers=[50, 25],
-        word_dim=50,
-        epochs=250,
-        batch=100,
-        verbose=True,
-        pte=False):
+            self,
+            window=5,
+            layers=[50, 25],
+            word_dim=50,
+            epochs=250,
+            batch=100,
+            verbose=True,
+            pte=False):
         """
         Called when initializing the classifier
         """
