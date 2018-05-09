@@ -108,15 +108,14 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
                 for l in distinct_labels:
                     self.miss_p[l] = min(self.logTable[l].values())
 
-        """ Feature list
-            for each label -
-                mean log prob 3
-                std deviation log prob 3
-                # of misses 3
-                max log prob 3
-                min log prob 3
-                sentence length 1
-        """
+        # Feature list
+        #     for each label -
+        #         mean log prob 3
+        #         std deviation log prob 3
+        #         # of misses 3
+        #         max log prob 3
+        #         min log prob 3
+        #         sentence length 1
 
         print("Initialising NN")
         model = Sequential()
