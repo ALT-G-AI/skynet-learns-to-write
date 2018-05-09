@@ -1,9 +1,9 @@
-from Predictors.windowed_DNN import windowedDNN
-from data.import_data import import_data
-from sklearn.model_selection import cross_val_predict
-from sklearn.metrics import confusion_matrix, log_loss, accuracy_score
-
 import numpy as np
+from sklearn.metrics import confusion_matrix, log_loss, accuracy_score
+from sklearn.model_selection import cross_val_predict
+
+from Predictors.windowed_DNN import WindowedDNN
+from data.import_data import import_data
 
 
 def logprint(*args):
@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
     for wd in word_dim:
         logprint("Windows:", 5, "| Encoding:", wd, "| Layers:", [50])
-        myc = windowedDNN(
+        myc = WindowedDNN(
             word_dim=wd,
             layers=[40],
             window=5,
@@ -75,7 +75,7 @@ if __name__ == '__main__':
                     "| PTE:", p,
                     "| Layers:", l)
 
-                myc = windowedDNN(
+                myc = WindowedDNN(
                     layers=l,
                     window=w,
                     pte=p,

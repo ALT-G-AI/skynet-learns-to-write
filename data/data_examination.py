@@ -1,24 +1,19 @@
-from data.import_data import import_data
-from data.pipelines import (tokenize_pipe,
-                            lower_pipe,
-                            stem_pipe,
-                            lemmatize_pipe,
-                            uncommon_pipe,
-                            encode_pipe,
-                            window_pipe,
-                            window_pipe_nolabel,
-                            cull_words_pipe,
-                            strip_stopwords_pipe)
 from collections import Counter
 
 import matplotlib.pyplot as plt
 from matplotlib import rc
 from numpy import sqrt, prod, mean, std
 
+from data.import_data import import_data
+from data.pipelines import (tokenize_pipe,
+                            lower_pipe,
+                            stem_pipe,
+                            lemmatize_pipe,
+                            strip_stopwords_pipe)
+
 font = {'size': 12}
 
 rc('font', **font)
-
 
 tr, te = import_data()
 
@@ -31,7 +26,7 @@ s_by_a = {a: [s for s, a1 in zip(sens, authors) if a1 == a] for a in n_auths}
 
 tok_s_by_a = {
     k:
-    list(tokenize_pipe(lower_pipe(v))) for k, v in s_by_a.items()}
+        list(tokenize_pipe(lower_pipe(v))) for k, v in s_by_a.items()}
 
 
 def senlens(X):

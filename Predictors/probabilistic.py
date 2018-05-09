@@ -1,7 +1,8 @@
 from collections import Counter
-from string import punctuation
+
 from numpy import log
 from sklearn.base import BaseEstimator, ClassifierMixin
+
 from data.data_examination import make_sig_words
 from data.pipelines import (tokenize_pipe,
                             lower_pipe,
@@ -12,16 +13,20 @@ from data.pipelines import (tokenize_pipe,
 class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
     def __init__(
             self,
-            logTable={},
-            counterTable={},
+            log_table=None,
+            counter_table=None,
             beta_method=False,
             stem=False,
             lemma=False):
         """
         Called when initializing the classifier
         """
-        self.counterTable = counterTable
-        self.logTable = logTable
+        if counter_table is None:
+            counter_table = {}
+        if log_table is None:
+            log_table = {}
+        self.counterTable = counter_table
+        self.logTable = log_table
         self.beta_method = beta_method
         self.stem = stem
         self.lemma = lemma
@@ -34,12 +39,12 @@ class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
                 self.logTable[l] = {}
 
             s_by_a = {a:
-                      [s for s, a1 in zip(sentences, labels) if a1 == a]
+                          [s for s, a1 in zip(sentences, labels) if a1 == a]
                       for a in distinct_labels}
 
             tok_s_by_a = {
                 k:
-                list(tokenize_pipe(lower_pipe(v))) for k, v in s_by_a.items()}
+                    list(tokenize_pipe(lower_pipe(v))) for k, v in s_by_a.items()}
             beta_table = make_sig_words(
                 stem=self.stem,
                 lemma=self.lemma,
@@ -89,23 +94,23 @@ class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
                 return 0
 
     def hit_(self, w, l):
-        return (w in self.logTable[l])
+        return w in self.logTable[l]
 
-    def predict(self, X):
+    def predict(self, x):
         try:
             getattr(self, 'trained_')
         except AttributeError:
             raise RuntimeError('You must train the classifier before using it')
-        X = lower_pipe(X)
-        X = tokenize_pipe(X)
+        x = lower_pipe(x)
+        x = tokenize_pipe(x)
         if self.stem:
-            X = stem_pipe(X)
+            x = stem_pipe(x)
         if self.lemma:
-            X = lemmatize_pipe(X)
+            x = lemmatize_pipe(x)
 
-        X = list(X)
+        x = list(x)
 
-        return [self.predict_sen_(s) for s in X]
+        return [self.predict_sen_(s) for s in x]
 
     def predict_sen_(self, s):
         words = s

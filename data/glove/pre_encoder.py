@@ -1,5 +1,5 @@
-from gensim.models import KeyedVectors
 import numpy as np
+from gensim.models import KeyedVectors
 
 
 class pte():
