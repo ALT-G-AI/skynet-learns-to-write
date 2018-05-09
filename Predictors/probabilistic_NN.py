@@ -1,30 +1,29 @@
 from collections import Counter
-from numpy import log
-import numpy as np
-from data.import_data import import_data
-from sklearn.base import BaseEstimator, ClassifierMixin
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.utils import to_categorical
 
-from sklearn.model_selection import cross_val_predict
+import numpy as np
+from keras.layers import Dense
+from keras.models import Sequential
+from keras.utils import to_categorical
+from numpy import log
+from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.metrics import (confusion_matrix,
                              log_loss,
                              accuracy_score)
+from sklearn.model_selection import cross_val_predict
 
 from data.data_examination import make_sig_words
+from data.import_data import import_data
 from data.pipelines import (tokenize_pipe,
                             lower_pipe,
                             stem_pipe,
-                            lemmatize_pipe,
-                            strip_stopwords_pipe)
+                            lemmatize_pipe)
 
 
 class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
     def __init__(
             self,
-            logTable={},
-            counterTable={},
+            log_table=None,
+            counter_table=None,
             layers=[20],
             epochs=200,
             batch=500,
@@ -35,8 +34,12 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
         """
         Called when initializing the classifier
         """
-        self.counterTable = counterTable
-        self.logTable = logTable
+        if log_table is None:
+            log_table = {}
+        if counter_table is None:
+            counter_table = {}
+        self.counterTable = counter_table
+        self.logTable = log_table
         self.layers = layers
         self.epochs = epochs
         self.batch = batch
@@ -82,12 +85,12 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
                     self.logTable[l] = {}
 
                 s_by_a = {a:
-                          [s for s, a1 in zip(sentences, labels) if a1 == a]
+                              [s for s, a1 in zip(sentences, labels) if a1 == a]
                           for a in distinct_labels}
 
                 tok_s_by_a = {
                     k:
-                    list(self.pipeline_factory(v)) for k, v in s_by_a.items()}
+                        list(self.pipeline_factory(v)) for k, v in s_by_a.items()}
                 beta_table = make_sig_words(
                     stem=self.stem,
                     lemma=self.lemma,
@@ -180,15 +183,15 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
                 return 0
 
     def hit_(self, w, l):
-        return (w in self.logTable[l])
+        return w in self.logTable[l]
 
-    def predict(self, X):
+    def predict(self, x):
         try:
             getattr(self, 'trained_')
         except AttributeError:
             raise RuntimeError('You must train the classifier before using it')
 
-        sens = self.pipeline_factory(X)
+        sens = self.pipeline_factory(x)
         sens = list(sens)
 
         features = np.array([self.get_features(s) for s in sens])

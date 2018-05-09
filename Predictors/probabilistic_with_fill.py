@@ -1,19 +1,24 @@
 from collections import Counter
+
 from numpy import log
 from sklearn.base import BaseEstimator, ClassifierMixin
-from data.import_data import import_data, tokenize
-
-from sklearn.model_selection import cross_val_predict
 from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import cross_val_predict
+
+from data.import_data import import_data, tokenize
 
 
 class ProbabilisticWithFillClassifier(BaseEstimator, ClassifierMixin):
-    def __init__(self, logTable={}, counterTable={}, stem=False, cull_stopwords=False):
+    def __init__(self, log_table=None, counter_table=None, stem=False, cull_stopwords=False):
         """
         Called when initializing the classifier
         """
-        self.counterTable = counterTable
-        self.logTable = logTable
+        if log_table is None:
+            log_table = {}
+        if counter_table is None:
+            counter_table = {}
+        self.counterTable = counter_table
+        self.logTable = log_table
         self.stem = stem
         self.cull_stopwords = cull_stopwords
 
@@ -39,7 +44,7 @@ class ProbabilisticWithFillClassifier(BaseEstimator, ClassifierMixin):
         self.trained_ = True
 
     def hit_(self, w, l):
-        return (w in self.logTable[l])
+        return w in self.logTable[l]
 
     def score_(self, w, l):
         if self.hit_(w, l):

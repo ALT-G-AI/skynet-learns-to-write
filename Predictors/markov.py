@@ -1,16 +1,15 @@
 from collections import Counter
+
 from numpy import log
 from sklearn.base import BaseEstimator, ClassifierMixin
-from data.import_data import tokenize, import_data
-
-from sklearn.model_selection import cross_val_predict
 from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import cross_val_predict
 
+from data.import_data import import_data
 from data.pipelines import (tokenize_pipe,
                             lower_pipe,
                             stem_pipe,
-                            lemmatize_pipe,
-                            strip_stopwords_pipe)
+                            lemmatize_pipe)
 
 
 class MarkovClassifier(BaseEstimator, ClassifierMixin):
@@ -71,7 +70,7 @@ class MarkovClassifier(BaseEstimator, ClassifierMixin):
         first_word = tokens[0]
 
         if first_word not in trans:
-                miss_w += 1
+            miss_w += 1
         else:
             wordprob = (sum(trans[first_word].values()) /
                         sum([sum(v.values()) for v in trans.values()]))

@@ -1,8 +1,8 @@
+import datetime
 from math import floor
 
 import numpy as np
 import tensorflow as tf
-import datetime
 from sklearn.base import BaseEstimator, ClassifierMixin
 
 
@@ -75,20 +75,21 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
             self.init = tf.global_variables_initializer()
 
             # group the stuff we care about so it is easier to restore them
-            for operation in (self.X, self.y, self.probs, self.output, self.training_op, self.correct, self.accuracy, self.init):
+            for operation in (
+            self.X, self.y, self.probs, self.output, self.training_op, self.correct, self.accuracy, self.init):
                 tf.add_to_collection("rnn_members", operation)
 
     def __del__(self):
         try:
             self.sess.close()
-        except AttributeError: # if something breaks before we get chance to make self.sess
+        except AttributeError:  # if something breaks before we get chance to make self.sess
             pass
 
     def fit(self, sentences, labels):
         """
         sentences and labels should already be encoded
         """
-        test_prop = 0.05 # this is only to display progress so setting this too high just wastes data
+        test_prop = 0.05  # this is only to display progress so setting this too high just wastes data
         train_prop = 1.0 - test_prop
         split = floor(train_prop * sentences.shape[0])
 
@@ -117,8 +118,9 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
                     acc_train = self.sess.run(self.accuracy, feed_dict={self.X: X_batch, self.y: y_batch})
                     acc_test = self.sess.run(self.accuracy, feed_dict={self.X: X_test, self.y: y_test})
                     print(
-                        "{}/{}:\t\tTrain accuracy:\t{:.3f}\tTest accuracy:\t{:.3f}".format(epoch+1, self.n_epochs, acc_train,
-                                                                                        acc_test))
+                        "{}/{}:\t\tTrain accuracy:\t{:.3f}\tTest accuracy:\t{:.3f}".format(epoch + 1, self.n_epochs,
+                                                                                           acc_train,
+                                                                                           acc_test))
 
                 except KeyboardInterrupt:  # stop early with Control+C (SIGINT)
                     print("\nInterrupted by user at epoch {}/{}".format(epoch, self.n_epochs))
@@ -170,6 +172,7 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
             self.X, self.y, self.probs, self.output, self.training_op, self.correct, self.accuracy, self.init \
                 = tf.get_collection("rnn_members")
 
+
 if __name__ == '__main__':
     from data.numbered_authors import NumberAuthorsTransformer
     from data.windowed_sentences import WindowedSentenceTransformer
@@ -215,7 +218,7 @@ if __name__ == '__main__':
         cell_types_grid = (tf.contrib.rnn.GRUCell, tf.contrib.rnn.LSTMCell)
 
         search = [{**always_params.copy(), 'n_neurons': nn, 'cell_type': ct} for nn in n_neurons_grid
-                for ct in cell_types_grid]
+                  for ct in cell_types_grid]
 
         results = []
 
@@ -231,9 +234,9 @@ if __name__ == '__main__':
 
             results.append((accuracy_score(y_test, y_test_pred), params))
 
-        print("\n\n" + "="*24)
+        print("\n\n" + "=" * 24)
         print("\tRESULTS")
-        print("="*24)
+        print("=" * 24)
         for a, p in results:
             p_display = [(k, p[k]) for k in ('n_neurons', 'cell_type')]
             print("{:.3f}\t{}".format(a, p_display))
@@ -267,9 +270,10 @@ if __name__ == '__main__':
 
         with tf.Session() as sess:
             with sess.as_default():
-                rnn_restored = RNNClassifier(n_steps=50, cell_type=tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=200,
-                                    n_neurons=200)
+                rnn_restored = RNNClassifier(n_steps=50, cell_type=tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1,
+                                             n_epochs=200,
+                                             n_neurons=200)
                 rnn_restored.restore(PATH)
                 y_test_pred = rnn_restored.predict(X_test)
 
-        show_stats(y_test, y_test_pred) # observe that these stats are the same as for the original rnn
+        show_stats(y_test, y_test_pred)  # observe that these stats are the same as for the original rnn

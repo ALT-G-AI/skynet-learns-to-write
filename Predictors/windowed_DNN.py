@@ -1,20 +1,16 @@
-from collections import Counter
-from numpy import log
+import numpy as np
+from gensim.models import Word2Vec
+from keras.layers import Dense, Flatten
+from keras.models import Sequential
+from keras.utils import to_categorical
 from sklearn.base import BaseEstimator, ClassifierMixin
-from data.import_data import tokenize, import_data
-
-from sklearn.model_selection import cross_val_predict
 from sklearn.metrics import (confusion_matrix,
                              log_loss,
                              accuracy_score)
-
-from keras.models import Sequential
-from keras.layers import Dense, Flatten
-from keras.utils import to_categorical
-from gensim.models import Word2Vec
+from sklearn.model_selection import cross_val_predict
 
 from data.glove.pre_encoder import pte
-
+from data.import_data import import_data
 from data.pipelines import (tokenize_pipe,
                             lower_pipe,
                             stem_pipe,
@@ -25,10 +21,8 @@ from data.pipelines import (tokenize_pipe,
                             window_pipe_nolabel,
                             cull_words_pipe)
 
-import numpy as np
 
-
-class windowedDNN(BaseEstimator, ClassifierMixin):
+class WindowedDNN(BaseEstimator, ClassifierMixin):
     def __init__(
             self,
             window=5,
@@ -145,7 +139,7 @@ if __name__ == '__main__':
 
     classed_auths = [author_enum[a] for a in tr.author]
 
-    myc = windowedDNN(
+    myc = WindowedDNN(
         epochs=250,
         layers=[100],
         window=5,

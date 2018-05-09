@@ -1,16 +1,14 @@
+import random
 from collections import Counter
+from difflib import get_close_matches
+
+from gensim.models import KeyedVectors
 from numpy import log, exp, power
 from sklearn.base import BaseEstimator, ClassifierMixin
-from data.import_data import tokenize, import_data
-#from gensim.models.word2vec import Word2Vec
-from gensim.scripts.glove2word2vec import glove2word2vec
-from gensim.models import KeyedVectors
-from gensim.test.utils import datapath, get_tmpfile
-from difflib import get_close_matches
-import random
-
-from sklearn.model_selection import cross_val_predict
 from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import cross_val_predict
+
+from data.import_data import tokenize, import_data
 
 
 class ProxMarkovClassifier(BaseEstimator, ClassifierMixin):
@@ -68,13 +66,14 @@ class ProxMarkovClassifier(BaseEstimator, ClassifierMixin):
 
     def nearest_word(self, w, words):
         if w in words:
-            return (w, 1)
+            return w, 1
         else:
             nw = self.w2v.wv.most_similar_to_given(w, words)
             sim = self.w2v.wv.distance(w, nw)
 
-            return (nw, self.compression(sim))
+            return nw, self.compression(sim)
 
+    @classmethod
     def failsafe_match(self, w, vocab, n):
         try:
             out = get_close_matches(w, vocab, n=n)[0]
@@ -136,9 +135,9 @@ class ProxMarkovClassifier(BaseEstimator, ClassifierMixin):
                     w2, w2p = self.nearest_word(w2, list(trans.keys()))
                 tr_p = trans2[w2]
 
-            prob += log(tr_p / sum(trans2.values())) +\
-                log(w1p) +\
-                log(w2p)
+            prob += log(tr_p / sum(trans2.values())) + \
+                    log(w1p) + \
+                    log(w2p)
 
         return prob
 

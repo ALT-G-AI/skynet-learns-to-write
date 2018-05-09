@@ -1,7 +1,9 @@
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import cross_val_predict
+
 from Predictors.probabilistic import ProbabilisticClassifier
 from data.import_data import import_data
-from sklearn.model_selection import cross_val_predict
-from sklearn.metrics import confusion_matrix
+
 if __name__ == '__main__':
     tr, te = import_data()
 

@@ -1,8 +1,10 @@
-from nltk.stem import WordNetLemmatizer
-from nltk.tokenize import word_tokenize
+from collections import Counter
+
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
-from collections import Counter
+from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import word_tokenize
+
 from data.import_data import import_data
 
 
@@ -71,6 +73,7 @@ def cull_words_pipe(prior, whitelist):
             return w
         else:
             return '!#RARE'
+
     for s in prior:
         yield [fix(w) for w in s]
 
