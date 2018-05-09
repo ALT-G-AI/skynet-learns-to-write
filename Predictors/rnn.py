@@ -202,13 +202,26 @@ if __name__ == '__main__':
     from data.windowed_sentences import WindowedSentenceTransformer
     from data.padded_sentences import PaddedSentenceTransformer
     from data.import_data import import_data
+    from data.pipelines import lower_pipe, strip_stopwords_pipe, stem_pipe
     from Predictors.sklearnclassifier import show_stats
     from sklearn.metrics import accuracy_score, log_loss
 
     # padded sentences vs windows
     USE_PADDED_SENTENCES = True
+    PIPELINES = True
 
     tr, te = import_data()
+
+    data_train = tr.text
+    data_test = tr.text
+
+    if PIPELINES:
+        def pipeline(text):
+            return stem_pipe(strip_stopwords_pipe(lower_pipe(text)))
+
+        data_train = pipeline(data_train)
+        data_test = pipeline(data_test)
+
 
     if USE_PADDED_SENTENCES:
         data_enc = PaddedSentenceTransformer(encoder_size=50)
