@@ -49,7 +49,7 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
 
         # each RNNClassifier needs its own graph so that creating one after another for grid search doesn't
         # create naming conflicts in the tensorflow graph. Sessions are subordinate to graphs so recreating
-        # the session isn't sufficient. 
+        # the session isn't sufficient.
         self.graph = tf.Graph()
         with self.graph.as_default():
             self.sess = tf.Session()
@@ -280,7 +280,7 @@ if __name__ == '__main__':
         #                    state_is_tuple=False) # TODO state_is_tuple is deprecated
         # rnn = RNNClassifier(cell_type = tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=200, n_neurons=200)
 
-        # For using PaddedSentenceTransformer. 73% accuracy on the test set 
+        # For using PaddedSentenceTransformer. 73% accuracy on the test set
         rnn_params = {'n_steps': 50, 'cell_type': tf.contrib.rnn.LSTMCell, 'n_out_neurons': 3, 'n_outputs': 1,
                       'n_epochs': 200, 'n_neurons': 20, 'dropout_rate': 0.00, 'learning_rate': 0.001, 'state_is_tuple': False}
         rnn = RNNClassifier(**rnn_params)
