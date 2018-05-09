@@ -5,7 +5,7 @@ from sklearn.metrics import confusion_matrix
 if __name__ == '__main__':
     tr, te = import_data()
 
-    myc = ProbabilisticClassifier(beta_method=True, beta_stem=True, beta_lemma=True)
+    myc = ProbabilisticClassifier(beta_method=False, stem=True, lemma=True)
     y_train_pred = cross_val_predict(myc, tr.text, tr.author, cv=3)
 
     CM = confusion_matrix(

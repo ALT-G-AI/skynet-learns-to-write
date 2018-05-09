@@ -27,8 +27,8 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
             epochs=200,
             batch=500,
             beta_method=False,
-            beta_stem=False,
-            beta_lemma=False):
+            stem=False,
+            lemma=False):
         """
         Called when initializing the classifier
         """
@@ -38,15 +38,15 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
         self.epochs = epochs
         self.batch = batch
         self.beta_method = beta_method
-        self.beta_stem = beta_stem
-        self.beta_lemma = beta_lemma
+        self.stem = stem
+        self.lemma = lemma
 
     def pipeline_factory(self, sens):
         p = lower_pipe(sens)
         p = tokenize_pipe(p)
-        if self.beta_stem:
+        if self.stem:
             p = stem_pipe(p)
-        if self.beta_lemma:
+        if self.lemma:
             p = lemmatize_pipe(p)
         return p
 
@@ -59,7 +59,7 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
 
         print("Cleaning sentences")
         sens = self.pipeline_factory(sentences)
-
+        sens = list(sens)
         print("Building probability data")
         if not self.beta_method:
             for s, l in zip(sens, labels):
@@ -83,10 +83,10 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
 
                 tok_s_by_a = {
                     k:
-                    list(tokenize_pipe(lower_pipe(v))) for k, v in s_by_a.items()}
+                    list(self.pipeline_factory(v)) for k, v in s_by_a.items()}
                 beta_table = make_sig_words(
-                    stem=self.beta_stem,
-                    lemma=self.beta_lemma,
+                    stem=self.stem,
+                    lemma=self.lemma,
                     other_data=tok_s_by_a)
 
                 self.beta_table = beta_table
@@ -185,6 +185,7 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
             raise RuntimeError('You must train the classifier before using it')
 
         sens = self.pipeline_factory(X)
+        sens = list(sens)
 
         features = np.array([self.get_features(s) for s in sens])
 
@@ -205,11 +206,11 @@ if __name__ == '__main__':
     classed_auths = [author_enum[a] for a in tr.author]
 
     myc = ProbabilisticNNClassifier(
-        epochs=5000,
+        epochs=1500,
         layers=[],
         beta_method=True,
-        beta_stem=True,
-        beta_lemma=True)
+        stem=True,
+        lemma=True)
 
     y_train_pred = cross_val_predict(
         myc,

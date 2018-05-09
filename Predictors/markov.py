@@ -6,13 +6,32 @@ from data.import_data import tokenize, import_data
 from sklearn.model_selection import cross_val_predict
 from sklearn.metrics import confusion_matrix
 
+from data.pipelines import (tokenize_pipe,
+                            lower_pipe,
+                            stem_pipe,
+                            lemmatize_pipe,
+                            strip_stopwords_pipe)
+
 
 class MarkovClassifier(BaseEstimator, ClassifierMixin):
-    def __init__(self, tokenize_args={}):
+    def __init__(
+            self,
+            stem=False,
+            lemma=False):
         """
         Called when initializing the classifier
         """
-        self.tokenize_args = tokenize_args
+        self.stem = stem
+        self.lemma = lemma
+
+    def pipeline_factory(self, sens):
+        p = lower_pipe(sens)
+        p = tokenize_pipe(p)
+        if self.stem:
+            p = stem_pipe(p)
+        if self.lemma:
+            p = lemmatize_pipe(p)
+        return p
 
     def fit(self, sentences, labels):
         self.vocab = set()
@@ -26,9 +45,10 @@ class MarkovClassifier(BaseEstimator, ClassifierMixin):
         for l in distinct_labels:
             self.trans[l] = dict()
 
-        for s, l in zip(sentences, labels):
-            tokens = tokenize(s, **self.tokenize_args)
-            pairings = zip(tokens, tokens[1:])
+        sens = list(self.pipeline_factory(sentences))
+
+        for s, l in zip(sens, labels):
+            pairings = zip(s, s[1:])
 
             for w1, w2 in pairings:
                 if w1 not in self.trans[l]:
@@ -36,11 +56,10 @@ class MarkovClassifier(BaseEstimator, ClassifierMixin):
 
                 self.trans[l][w1][w2] += 1
 
-        self.runcount = 0
         self.trained_ = True
 
     def _sen_prob(self, s, l):
-        tokens = tokenize(s, **self.tokenize_args)
+        tokens = list(self.pipeline_factory([s]))[0]
         pairings = zip(tokens, tokens[1:])
 
         trans = self.trans[l]
@@ -76,10 +95,6 @@ class MarkovClassifier(BaseEstimator, ClassifierMixin):
 
     def _pred_sen(self, s):
 
-        self.runcount += 1
-        if self.runcount % 25 == 0:
-            print("RUNS:", self.runcount)
-
         o_labels = list(self.labels)
 
         probs = [self._sen_prob(s, l) for l in o_labels]
@@ -111,7 +126,8 @@ if __name__ == '__main__':
     tr, te = import_data()
 
     myc = MarkovClassifier(
-        tokenize_args={'cull_stopwords': True, 'stem': True})
+        stem=True,
+        lemma=True)
     y_train_pred = cross_val_predict(
         myc,
         tr.text,

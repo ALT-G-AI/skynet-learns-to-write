@@ -15,16 +15,16 @@ class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
             logTable={},
             counterTable={},
             beta_method=False,
-            beta_stem=False,
-            beta_lemma=False):
+            stem=False,
+            lemma=False):
         """
         Called when initializing the classifier
         """
         self.counterTable = counterTable
         self.logTable = logTable
         self.beta_method = beta_method
-        self.beta_stem = beta_stem
-        self.beta_lemma = beta_lemma
+        self.stem = stem
+        self.lemma = lemma
 
     def fit(self, sentences, labels):
         distinct_labels = set(labels)
@@ -41,8 +41,8 @@ class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
                 k:
                 list(tokenize_pipe(lower_pipe(v))) for k, v in s_by_a.items()}
             beta_table = make_sig_words(
-                stem=self.beta_stem,
-                lemma=self.beta_lemma,
+                stem=self.stem,
+                lemma=self.lemma,
                 other_data=tok_s_by_a)
 
             self.beta_table = beta_table
@@ -61,10 +61,15 @@ class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
         for l in distinct_labels:
             self.counterTable[l] = Counter()
 
-        for s, l in zip(sentences, labels):
-            # Strip punctuation
-            words = self.sen2words_(s)
-            for w in words:
+        piped = lower_pipe(sentences)
+        piped = tokenize_pipe(piped)
+        if self.stem:
+            piped = stem_pipe(piped)
+        if self.lemma:
+            piped = lemmatize_pipe(piped)
+
+        for s, l in zip(piped, labels):
+            for w in s:
                 self.counterTable[l][w] += 1
 
         for l in distinct_labels:
@@ -93,9 +98,9 @@ class ProbabilisticClassifier(BaseEstimator, ClassifierMixin):
             raise RuntimeError('You must train the classifier before using it')
         X = lower_pipe(X)
         X = tokenize_pipe(X)
-        if self.beta_stem:
+        if self.stem:
             X = stem_pipe(X)
-        if self.beta_lemma:
+        if self.lemma:
             X = lemmatize_pipe(X)
 
         X = list(X)
