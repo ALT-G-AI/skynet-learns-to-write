@@ -137,11 +137,13 @@ def search_params_(search_type, Clf, param_dist, AuthorProc, DataProc, train_lim
 
     print("\nBest Parameters: {}".format(search.best_params_))
 
+
 def grid_search_params(Clf, param_dist, AuthorProc=NumberAuthorsTransformer,
-                         DataProc=PaddedSentenceTransformer,
-                         train_limit=None, labels_enc_with_data=False, n_jobs=-1):
+                       DataProc=PaddedSentenceTransformer,
+                       train_limit=None, labels_enc_with_data=False, n_jobs=-1):
     search_params_(GridSearchCV, Clf, param_dist, AuthorProc, DataProc, train_limit,
                    labels_enc_with_data, n_jobs)
+
 
 def random_search_params(Clf, param_dist, AuthorProc=NumberAuthorsTransformer,
                          DataProc=PaddedSentenceTransformer,
