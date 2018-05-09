@@ -12,7 +12,12 @@ from data.pipelines import (tokenize_pipe,
 from collections import Counter
 
 import matplotlib.pyplot as plt
-from numpy import sqrt, prod
+from matplotlib import rc
+from numpy import sqrt, prod, mean, std
+
+font = {'size': 12}
+
+rc('font', **font)
 
 
 tr, te = import_data()
@@ -102,6 +107,12 @@ def make_sig_words(stem=False, lemma=False, other_data=None):
 
 if __name__ == '__main__':
     f1 = plt.figure(1)
+    for a, d in s_by_a.items():
+        plt.bar(a, len(d), label=a)
+    plt.ylabel('Sentences')
+    plt.xticks(rotation=45)
+
+    f1 = plt.figure(2)
     for a, d in tok_s_by_a.items():
         counts = senlens(d)
         sumcounts = sum(counts.values())
@@ -111,20 +122,20 @@ if __name__ == '__main__':
     plt.xlabel('Sentence Length')
     plt.ylabel('Frequency')
 
-    f2 = plt.figure(2)
+    f2 = plt.figure(3)
     for i, (a, d) in enumerate(tok_s_by_a.items()):
         plt.subplot(3, 1, i + 1)
         counts = wordcounts(d)
         top = counts.most_common(15)
         wds = [k for k, v in top]
         vs = [v for k, v in top]
-        vs = [x / sum(vs) for x in vs]
+        vs = [x / sum(counts.values()) for x in vs]
         plt.bar(wds, vs)
         plt.title(a)
-        plt.subplots_adjust(hspace=1)
+        plt.subplots_adjust(hspace=1.1)
         plt.xticks(rotation=45)
 
-    f2 = plt.figure(3)
+    f2 = plt.figure(4)
     for i, (a, d) in enumerate(tok_s_by_a.items()):
         print('Stopwords removal:', a)
         culled = list(strip_stopwords_pipe(d))
@@ -133,10 +144,16 @@ if __name__ == '__main__':
         top = counts.most_common(15)
         wds = [k for k, v in top]
         vs = [v for k, v in top]
-        vs = [x / sum(vs) for x in vs]
+        vs = [x / sum(counts.values()) for x in vs]
         plt.bar(wds, vs)
         plt.title(a)
-        plt.subplots_adjust(hspace=1)
+        plt.subplots_adjust(hspace=1.1)
         plt.xticks(rotation=45)
+
+    for a, d in tok_s_by_a.items():
+        counts = senlens(d)
+        sepd = [[i] * j for i, j in counts.items()]
+        sepd = [inner for ar in sepd for inner in ar]
+        print(a, "Mean | ", mean(sepd), "\t", "Dev |", std(sepd))
 
     plt.show()
