@@ -8,7 +8,9 @@ from keras.layers import Dense
 from keras.utils import to_categorical
 
 from sklearn.model_selection import cross_val_predict
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import (confusion_matrix,
+                             log_loss,
+                             accuracy_score)
 
 from data.data_examination import make_sig_words
 from data.pipelines import (tokenize_pipe,
@@ -28,7 +30,8 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
             batch=500,
             beta_method=False,
             stem=False,
-            lemma=False):
+            lemma=False,
+            index_out=True):
         """
         Called when initializing the classifier
         """
@@ -40,6 +43,7 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
         self.beta_method = beta_method
         self.stem = stem
         self.lemma = lemma
+        self.index_out = index_out
 
     def pipeline_factory(self, sens):
         p = lower_pipe(sens)
@@ -193,7 +197,10 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
 
         out = self.model.predict(features)
 
-        return np.argmax(out, 1)
+        if self.index_out:
+            return np.argmax(out, 1)
+        else:
+            return out
 
 
 myc = []
@@ -210,7 +217,8 @@ if __name__ == '__main__':
         layers=[],
         beta_method=True,
         stem=True,
-        lemma=True)
+        lemma=True,
+        index_out=False)
 
     y_train_pred = cross_val_predict(
         myc,
@@ -219,9 +227,14 @@ if __name__ == '__main__':
         cv=3,
         n_jobs=-1)
 
+    indices = np.argmax(np.array(y_train_pred), 1)
+
+    print("Loss:", log_loss(classed_auths, y_train_pred))
+    print("Acc:", accuracy_score(classed_auths, indices))
+
     CM = confusion_matrix(
         classed_auths,
-        y_train_pred)
+        indices)
 
     # Get prob dists across rows
     prob_CM = CM / CM.sum(axis=1, keepdims=True)

@@ -4,7 +4,9 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 from data.import_data import tokenize, import_data
 
 from sklearn.model_selection import cross_val_predict
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import (confusion_matrix,
+                             log_loss,
+                             accuracy_score)
 
 from keras.models import Sequential
 from keras.layers import Dense, Flatten
@@ -35,7 +37,8 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
             epochs=250,
             batch=100,
             verbose=True,
-            pte=False):
+            pte=False,
+            index_out=True):
         """
         Called when initializing the classifier
         """
@@ -46,19 +49,16 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
         self.batch = batch
         self.verbose = verbose
         self.pte = pte
+        self.index_out = index_out
 
     def fit(self, sentences, labels):
 
         if self.verbose:
             print("Building NN")
         model = Sequential()
-        firstlayer = self.layers[0]
         model.add(Flatten(input_shape=(self.window, self.word_dim)))
-        model.add(Dense(
-            firstlayer,
-            activation='relu'))
 
-        for l in self.layers[1:]:
+        for l in self.layers:
             model.add(Dense(l, activation='relu'))
 
         model.add(Dense(3, activation='sigmoid'))
@@ -130,7 +130,10 @@ class windowedDNN(BaseEstimator, ClassifierMixin):
         flat = np.sum(logs, 0)
 
         winner_index = np.argmax(flat)
-        return winner_index
+        if self.index_out:
+            return winner_index
+        else:
+            return flat
 
     def predict(self, X):
         return [self._pred_sen(s) for s in X]
@@ -142,7 +145,12 @@ if __name__ == '__main__':
 
     classed_auths = [author_enum[a] for a in tr.author]
 
-    myc = windowedDNN(epochs=150, layers=[125], window=5, pte=True)
+    myc = windowedDNN(
+        epochs=250,
+        layers=[100],
+        window=5,
+        pte=True,
+        index_out=False)
 
     y_train_pred = cross_val_predict(
         myc,
@@ -151,9 +159,14 @@ if __name__ == '__main__':
         cv=3,
         n_jobs=-1)
 
+    indices = np.argmax(np.array(y_train_pred), 1)
+
+    print("Loss:", log_loss(classed_auths, y_train_pred))
+    print("Acc:", accuracy_score(classed_auths, indices))
+
     CM = confusion_matrix(
         classed_auths,
-        y_train_pred)
+        indices)
 
     # Get prob dists across rows
     prob_CM = CM / CM.sum(axis=1, keepdims=True)
