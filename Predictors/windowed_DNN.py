@@ -26,7 +26,7 @@ class WindowedDNN(BaseEstimator, ClassifierMixin):
     def __init__(
             self,
             window=5,
-            layers=[50, 25],
+            layers=None,
             word_dim=50,
             epochs=250,
             batch=100,
@@ -36,6 +36,8 @@ class WindowedDNN(BaseEstimator, ClassifierMixin):
         """
         Called when initializing the classifier
         """
+        if layers is None:
+            layers = [50, 25]
         self.window = window
         self.layers = layers
         self.word_dim = word_dim

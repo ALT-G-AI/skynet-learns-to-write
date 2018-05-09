@@ -42,7 +42,7 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
 
         # each RNNClassifier needs its own graph so that creating one after another for grid search doesn't
         # create naming conflicts in the tensorflow graph. Sessions are subordinate to graphs so recreating
-        # the session isn't sufficient. 
+        # the session isn't sufficient.
         self.graph = tf.Graph()
         with self.graph.as_default():
             self.sess = tf.Session()
@@ -76,7 +76,7 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
 
             # group the stuff we care about so it is easier to restore them
             for operation in (
-            self.X, self.y, self.probs, self.output, self.training_op, self.correct, self.accuracy, self.init):
+                    self.X, self.y, self.probs, self.output, self.training_op, self.correct, self.accuracy, self.init):
                 tf.add_to_collection("rnn_members", operation)
 
     def __del__(self):

@@ -24,7 +24,7 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
             self,
             log_table=None,
             counter_table=None,
-            layers=[20],
+            layers=None,
             epochs=200,
             batch=500,
             beta_method=False,
@@ -34,6 +34,8 @@ class ProbabilisticNNClassifier(BaseEstimator, ClassifierMixin):
         """
         Called when initializing the classifier
         """
+        if layers is None:
+            layers = [20]
         if log_table is None:
             log_table = {}
         if counter_table is None:
