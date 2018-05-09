@@ -79,9 +79,9 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
             outputs, states = tf.nn.dynamic_rnn(cell, self.X, dtype=tf.float32)
 
             if self.he_init:
-                out_layer = tf.layers.dense(states, self.n_out_neurons, kernel_initializer=he_init)
+                out_layer = tf.layers.dense(states, self.n_out_neurons, activation=tf.nn.sigmoid, kernel_initializer=he_init)
             else:
-                out_layer = tf.layers.dense(states, self.n_out_neurons)
+                out_layer = tf.layers.dense(states, self.n_out_neurons, activation=tf.nn.sigmoid)
 
             xentropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.y, logits=out_layer)
             loss = tf.reduce_mean(xentropy)
