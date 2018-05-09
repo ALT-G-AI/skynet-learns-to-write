@@ -154,7 +154,7 @@ class RNNClassifier(BaseEstimator, ClassifierMixin):
         probabilities for each class
         """
         with self.graph.as_default():
-            self.init.run()
+            self.sess.run(self.init)
             return self.sess.run(self.probs, feed_dict={self.X: X})
 
     def predict(self, X):
@@ -200,7 +200,7 @@ if __name__ == '__main__':
     from data.padded_sentences import PaddedSentenceTransformer
     from data.import_data import import_data
     from Predictors.sklearnclassifier import show_stats
-    from sklearn.metrics import accuracy_score
+    from sklearn.metrics import accuracy_score, log_loss
 
     # padded sentences vs windows
     USE_PADDED_SENTENCES = True
@@ -224,7 +224,7 @@ if __name__ == '__main__':
         X_train, y_train = zip(*data_enc.fit_transform(tr.text, y_train))
         X_test, y_test = zip(*data_enc.transform(te.text, y_test))
 
-    PARAM_SEARCH = True
+    PARAM_SEARCH = False
     if PARAM_SEARCH:
         print("Parameter grid search. This will take over and hour")
         # I was unable to get the sklearn parameter search working.
@@ -281,8 +281,8 @@ if __name__ == '__main__':
         # rnn = RNNClassifier(cell_type = tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=200, n_neurons=200)
 
         # For using PaddedSentenceTransformer. 73% accuracy on the test set 
-        rnn_params = {'n_steps': 50, 'cell_type': tf.contrib.rnn.GRUCell, 'n_out_neurons': 3, 'n_outputs': 1,
-                      'n_epochs': 100, 'n_neurons': 60, 'dropout_rate': 0.25, 'he_init': True}
+        rnn_params = {'n_steps': 50, 'cell_type': tf.contrib.rnn.LSTMCell, 'n_out_neurons': 3, 'n_outputs': 1,
+                      'n_epochs': 200, 'n_neurons': 20, 'dropout_rate': 0.00, 'learning_rate': 0.001, 'state_is_tuple': False}
         rnn = RNNClassifier(**rnn_params)
 
         rnn.fit(X_train, y_train)
@@ -291,8 +291,10 @@ if __name__ == '__main__':
         rnn.save(path=PATH)
 
         y_test_pred = rnn.predict(X_test)
+        y_test_probs = rnn.predict_proba(X_test)
 
         show_stats(y_test, y_test_pred)
+        print("log loss: {}".format(log_loss(y_test, y_test_probs)))
 
         # test restoring
         tf.reset_default_graph()
