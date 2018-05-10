@@ -212,15 +212,16 @@ myc = []
 if __name__ == '__main__':
     tr, te = import_data()
 
-    author_enum = {'HPL': 0, 'EAP': 1, 'MWS': 2}
+    author_enum = {'EAP': 0, 'HPL': 1, 'MWS': 2}
 
     classed_auths = [author_enum[a] for a in tr.author]
 
     myc = ProbabilisticNNClassifier(
-        epochs=1500,
+        epochs=5000,
         layers=[],
         beta_method=True,
         stem=True,
+        batch=len(classed_auths),
         lemma=True,
         index_out=False)
 
@@ -242,5 +243,5 @@ if __name__ == '__main__':
 
     # Get prob dists across rows
     prob_CM = CM / CM.sum(axis=1, keepdims=True)
-
+    print(CM)
     print(prob_CM)

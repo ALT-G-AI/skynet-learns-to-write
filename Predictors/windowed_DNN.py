@@ -122,8 +122,8 @@ class WindowedDNN(BaseEstimator, ClassifierMixin):
 
         preds = self.model.predict(windows, batch_size=len(windows))
 
-        logs = np.log(preds)
-        flat = np.sum(logs, 0)
+        #logs = np.log(preds)
+        flat = np.prod(preds, 0)
 
         winner_index = np.argmax(flat)
         if self.index_out:
@@ -142,9 +142,9 @@ if __name__ == '__main__':
     classed_auths = [author_enum[a] for a in tr.author]
 
     myc = WindowedDNN(
-        epochs=250,
-        layers=[100],
-        window=5,
+        epochs=800,
+        layers=[80, 40],
+        window=10,
         pte=True,
         index_out=False)
 
@@ -153,7 +153,7 @@ if __name__ == '__main__':
         tr.text,
         classed_auths,
         cv=3,
-        n_jobs=-1)
+        n_jobs=2)
 
     indices = np.argmax(np.array(y_train_pred), 1)
 
