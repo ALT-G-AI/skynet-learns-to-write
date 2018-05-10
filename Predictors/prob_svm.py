@@ -16,10 +16,10 @@ from data.pipelines import (tokenize_pipe,
                             stem_pipe,
                             lemmatize_pipe)
 
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
 
 
-class ProbabilisticForestClassifier(BaseEstimator, ClassifierMixin):
+class ProbabilisticSVMClassifier(BaseEstimator, ClassifierMixin):
     def __init__(
             self,
             log_table=None,
@@ -27,9 +27,8 @@ class ProbabilisticForestClassifier(BaseEstimator, ClassifierMixin):
             beta_method=False,
             stem=False,
             lemma=False,
-            n_estimators=400,
             n_jobs=-1,
-            **kwargs):
+            kernel='rbf'):
         """
         Called when initializing the classifier
         """
@@ -42,9 +41,8 @@ class ProbabilisticForestClassifier(BaseEstimator, ClassifierMixin):
         self.beta_method = beta_method
         self.stem = stem
         self.lemma = lemma
-        self.n_estimators = n_estimators
+        self.kernel = kernel
         self.n_jobs = n_jobs
-        self.forest_args = kwargs
 
     def pipeline_factory(self, sens):
         p = lower_pipe(sens)
@@ -104,8 +102,9 @@ class ProbabilisticForestClassifier(BaseEstimator, ClassifierMixin):
                 for l in distinct_labels:
                     self.miss_p[l] = min(self.logTable[l].values())
 
-        print("Initialising Forest")
-        self.forest = RandomForestClassifier(n_jobs=self.n_jobs, n_estimators=self.n_estimators, **self.forest_args)
+        print("Initialising SVM")
+        self.svm = SVC(kernel=self.kernel)
+        print(self.svm.kernel)
 
         print("Fetching features")
         features = np.array([self.get_features(s) for s in sens])
@@ -115,8 +114,8 @@ class ProbabilisticForestClassifier(BaseEstimator, ClassifierMixin):
 
         features = (features - self.means) / self.devs
 
-        print("Training Forest")
-        self.forest.fit(features, labels)
+        print("Training SVM")
+        self.svm.fit(features, labels)
 
         self.trained_ = True
 
@@ -158,7 +157,7 @@ class ProbabilisticForestClassifier(BaseEstimator, ClassifierMixin):
 
         features = (features - self.means) / self.devs
 
-        out = self.forest.predict(features)
+        out = self.svm.predict(features)
 
         return out
 
@@ -172,11 +171,11 @@ if __name__ == '__main__':
 
     classed_auths = [author_enum[a] for a in tr.author]
 
-    myc = ProbabilisticForestClassifier(
+    myc = ProbabilisticSVMClassifier(
         beta_method=True,
         stem=True,
         lemma=True,
-        n_jobs=2, n_estimators=80)
+        n_jobs=3, kernel='rbf')
 
     y_train_pred = cross_val_predict(
         myc,
