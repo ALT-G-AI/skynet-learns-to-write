@@ -148,5 +148,6 @@ def grid_search_params(Clf, param_dist, AuthorProc=NumberAuthorsTransformer,
 def random_search_params(Clf, param_dist, AuthorProc=NumberAuthorsTransformer,
                          DataProc=PaddedSentenceTransformer,
                          train_limit=None, n_iter=100, labels_enc_with_data=False, n_jobs=-1):
-    search_params_(RandomizedSearchCV, Clf, param_dist, AuthorProc, DataProc, train_limit,
-                   labels_enc_with_data, n_jobs, n_iter=n_iter)
+     search_params_(RandomizedSearchCV, Clf, param_dist, AuthorProc, DataProc, train_limit,
+                    labels_enc_with_data, n_jobs, n_iter=n_iter)
+
