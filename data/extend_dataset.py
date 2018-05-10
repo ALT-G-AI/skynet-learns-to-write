@@ -1,13 +1,16 @@
+import argparse
+import os
+
+import pandas as pd
 from joblib import Parallel, delayed
 from textblob import TextBlob
 from textblob.translate import NotTranslated
 
-import argparse
-import os
-import pandas as pd
-
 NAN_WORD = "_NAN_"
 
+
+# This is based on code by Pavel Ostyakov (https://github.com/PavelOstyakov/toxic/tree/master/tools)
+# which is distributed with an MIT License
 
 def translate(sentence, language):
     if hasattr(sentence, "decode"):
@@ -40,7 +43,7 @@ def main():
 
     parallel = Parallel(args.thread_count, backend="threading", verbose=5)
     for language in args.languages:
-        print('Translate comments using "{0}" language'.format(language))
+        print('Translate sentence using "{0}" language'.format(language))
         translated_data = parallel(delayed(translate)(sentence, language) for sentence in sentence_list)
         train_data["text"] = translated_data
 
