@@ -77,7 +77,7 @@ class DNNEnsemble(BaseEstimator, ClassifierMixin):
                     self.sess.run(self.training_op, feed_dict={self.X: self.pred_(X_batch), self.y: y_batch})
 
                 acc_train = self.sess.run(self.accuracy, feed_dict={self.X: self.pred_(X_batch), self.y: y_batch})
-                print("{}/{}\t\tTrain accuracy:\t{:.3f}".format(epoch+1, 200, acc_train))
+                print("{}/{}\t\tTrain accuracy:\t{:.3f}".format(epoch+1, 500, acc_train))
 
             except KeyboardInterrupt:
                 print("Interrupted")
