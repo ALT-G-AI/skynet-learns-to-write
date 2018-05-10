@@ -7,6 +7,9 @@ from nltk.tokenize import word_tokenize
 
 from data.import_data import import_data
 
+from textblob import TextBlob
+from textblob.translate import NotTranslated
+
 
 def tokenize_pipe(prior):
     for s in prior:
@@ -102,6 +105,19 @@ def window_pipe_nolabel(prior, window):
             for i in range(len(s) + 1 - window):
                 yield s[i:i + window]
 
+def translate(prior, language):
+    for s in prior:
+        if hasattr(s, "decode"):
+            s = s.decode("utf-8")
+
+        text = TextBlob(s)
+        try:
+            text = text.translate(to=language)
+            text = text.translate(to="en")
+        except NotTranslated:
+            pass
+
+        yield str(text)
 
 if __name__ == '__main__':
     tr, te = import_data()

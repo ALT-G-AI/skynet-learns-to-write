@@ -10,8 +10,16 @@ from sklearn.model_selection import train_test_split
 TRAINING_PATH = 'data/train.csv'
 
 
-def import_data(training_path=TRAINING_PATH):
+def import_data(training_path=TRAINING_PATH, languages=None):
     frame = pd.read_csv(training_path)
+
+    if languages is None:
+        languages = []
+    language_frames = [frame]
+    for language in languages:
+        language_frames.append(pd.read_csv('data/extended_data/train_{0}.csv'.format(language)))
+
+
     train_set, test_set = train_test_split(
         frame,
         test_size=0.2,
