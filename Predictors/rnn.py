@@ -208,7 +208,7 @@ if __name__ == '__main__':
 
     # padded sentences vs windows
     USE_PADDED_SENTENCES = True
-    PIPELINES = True
+    PIPELINES = False
 
     tr, te = import_data()
 
@@ -297,8 +297,8 @@ if __name__ == '__main__':
         # rnn = RNNClassifier(cell_type = tf.contrib.rnn.GRUCell, n_out_neurons=3, n_outputs=1, n_epochs=200, n_neurons=200)
 
         # For using PaddedSentenceTransformer. 73% accuracy on the test set
-        rnn_params = {'n_steps': 50, 'cell_type': tf.contrib.rnn.LSTMCell, 'n_out_neurons': 3, 'n_outputs': 1,
-                      'n_epochs': 200, 'n_neurons': 20, 'dropout_rate': 0.00, 'learning_rate': 0.001, 'state_is_tuple': False}
+        rnn_params = {'n_steps': 50, 'cell_type': tf.contrib.rnn.GRUCell, 'n_out_neurons': 3, 'n_outputs': 1,
+                      'n_epochs': 2000, 'n_neurons': 100, 'dropout_rate': 0.10, 'learning_rate': 0.0001}
         rnn = RNNClassifier(**rnn_params)
 
         rnn.fit(X_train, y_train)
@@ -312,16 +312,18 @@ if __name__ == '__main__':
         show_stats(y_test, y_test_pred)
         print("log loss: {}".format(log_loss(y_test, y_test_probs)))
 
-        # test restoring
-        tf.reset_default_graph()
+        # test saving and restoring
+        TEST_RESTORING=False
+        if TEST_RESTORING:
+            tf.reset_default_graph()
 
-        with tf.Session() as sess:
-            with sess.as_default():
+            with tf.Session() as sess:
+                with sess.as_default():
 
-                rnn_restored = RNNClassifier(**rnn_params)
-                rnn_restored.restore(PATH)
-                y_test_pred = rnn_restored.predict(X_test)
+                    rnn_restored = RNNClassifier(**rnn_params)
+                    rnn_restored.restore(PATH)
+                    y_test_pred = rnn_restored.predict(X_test)
 
-        show_stats(y_test, y_test_pred) # observe that these stats are the same as for the original rnn
+            show_stats(y_test, y_test_pred) # observe that these stats are the same as for the original rnn
 
 
