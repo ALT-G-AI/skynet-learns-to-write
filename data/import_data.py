@@ -10,12 +10,25 @@ from sklearn.model_selection import train_test_split
 TRAINING_PATH = 'data/train.csv'
 
 
-def import_data(training_path=TRAINING_PATH):
+def import_data(training_path=TRAINING_PATH, languages=None):
     frame = pd.read_csv(training_path)
+
     train_set, test_set = train_test_split(
         frame,
         test_size=0.2,
         random_state=0)
+
+    if languages is None:
+        languages = []
+    language_frames = [train_set]
+    for language in languages:
+        lang_frame = pd.read_csv('data/extended_data/train_{0}.csv'.format(language))
+        lang_concat = [test_set, test_set, lang_frame]
+        lang_frame = pd.concat(lang_concat)
+        lang_frame.drop_duplicates(subset="id", inplace=True, keep=False)
+        language_frames.append(lang_frame)
+
+    train_set = pd.concat(language_frames)
 
     return train_set, test_set
 
